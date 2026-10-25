@@ -19,7 +19,8 @@ struct ActivityView: View {
     var body: some View {
         VStack(spacing: 0) {
             Picker("Sección", selection: $section) {
-                ForEach(Section.allCases) { Text($0.rawValue).tag($0) }
+                // LocalizedStringKey: a plain String would skip the translation table.
+                ForEach(Section.allCases) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
@@ -74,6 +75,32 @@ private struct UpdatesList: View {
     @EnvironmentObject private var updater: LibraryUpdater
     @EnvironmentObject private var downloads: DownloadManager
 
+    /// A key path cannot reach into a tuple, so the uploads become this struct.
+    private struct Update: Identifiable {
+        let manga: MangaItem
+        let chapter: ChapterItem
+        var id: String { "\(manga.id)|\(chapter.url)" }
+    }
+
+    /// One release day, newest first, like the history list.
+    private struct Day: Identifiable {
+        let date: Date
+        let items: [Update]
+        var id: Date { date }
+    }
+
+    private var days: [Day] {
+        let calendar = Calendar.current
+        let updates = library.latestUploads.map { Update(manga: $0.manga, chapter: $0.chapter) }
+        return Dictionary(grouping: updates) { update in
+            calendar.startOfDay(
+                for: Date(timeIntervalSince1970: TimeInterval(update.chapter.dateUpload) / 1000)
+            )
+        }
+        .map { Day(date: $0.key, items: $0.value) }
+        .sorted { $0.date > $1.date }
+    }
+
     var body: some View {
         if library.entries.isEmpty {
             EmptyStateView(
@@ -95,7 +122,7 @@ private struct UpdatesList: View {
                     HStack(spacing: 10) {
                         ProgressView()
                         Text(downloads.queue.count == 1
-                            ? "Descargando 1 capítulo…"
+                            ? LocalizedStringKey("Descargando 1 capítulo…")
                             : "Descargando \(downloads.queue.count) capítulos…")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
@@ -116,7 +143,7 @@ private struct UpdatesList: View {
                     updater.newChapters == 0
                         ? "Sin capítulos nuevos (\(finished.shortText))."
                         : updater.newChapters == 1
-                            ? "1 capítulo nuevo."
+                            ? LocalizedStringKey("1 capítulo nuevo.")
                             : "\(updater.newChapters) capítulos nuevos."
                 )
                 .font(.footnote)
@@ -124,11 +151,17 @@ private struct UpdatesList: View {
                 .listRowSeparator(.hidden)
             }
 
-            ForEach(library.latestUploads, id: \.chapter.url) { item in
-                NavigationLink(value: item.manga) {
-                    row(item.manga, item.chapter)
+            ForEach(days) { day in
+                SwiftUI.Section {
+                    ForEach(day.items) { item in
+                        NavigationLink(value: item.manga) {
+                            row(item.manga, item.chapter)
+                        }
+                        .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 12))
+                    }
+                } header: {
+                    DayHeader(date: day.date)
                 }
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 12))
             }
         }
         .listStyle(.plain)
@@ -139,41 +172,51 @@ private struct UpdatesList: View {
 
     private func row(_ manga: MangaItem, _ chapter: ChapterItem) -> some View {
         let read = library.isRead(chapter, in: manga)
+        let isNew = updater.lastNewURLs.contains(chapter.url)
         return HStack(spacing: 12) {
             CoverImage(manga: manga)
-                .frame(width: 40, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            VStack(alignment: .leading, spacing: 2) {
+                .frame(width: 44, height: 62)
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.08))
+                )
+            VStack(alignment: .leading, spacing: 3) {
                 Text(manga.title)
                     .font(.subheadline.weight(read ? .regular : .semibold))
                     .foregroundStyle(read ? .secondary : .primary)
                     .lineLimit(1)
                 Text(chapter.name)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(read ? .tertiary : .secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 4) {
-                if let date = chapter.date {
-                    Text(date.shortText)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                if updater.lastNewURLs.contains(chapter.url) {
-                    Text("Nuevo")
-                        .font(.caption2.bold())
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.moka.opacity(0.15), in: Capsule())
-                        .foregroundStyle(Color.moka)
-                } else if !read {
-                    Circle()
-                        .fill(Color.moka)
-                        .frame(width: 8, height: 8)
-                }
+            if isNew {
+                Text("Nuevo")
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.moka.opacity(0.15), in: Capsule())
+                    .foregroundStyle(Color.moka)
+            } else if !read {
+                Circle()
+                    .fill(Color.moka)
+                    .frame(width: 8, height: 8)
             }
         }
+    }
+}
+
+/// "Hoy", "Ayer" or the date, as the warm serif section heading both activity lists share.
+struct DayHeader: View {
+    let date: Date
+
+    var body: some View {
+        Text(date.relativeDayText)
+            .font(.system(.footnote, design: .serif).weight(.semibold))
+            .foregroundStyle(Color.moka)
+            .textCase(nil)
     }
 }
 
@@ -214,7 +257,7 @@ private struct HistoryList: View {
             } else {
                 List {
                     ForEach(days) { day in
-                        SwiftUI.Section(day.date.shortText) {
+                        SwiftUI.Section {
                             ForEach(day.records) { record in
                                 NavigationLink(value: record.manga) {
                                     HStack(spacing: 12) {
@@ -242,6 +285,8 @@ private struct HistoryList: View {
                                     }
                                 }
                             }
+                        } header: {
+                            DayHeader(date: day.date)
                         }
                     }
                 }

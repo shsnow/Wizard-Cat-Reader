@@ -191,9 +191,11 @@ struct EmptyStateView: View {
                 .foregroundStyle(Color.moka)
                 .frame(width: 76, height: 76)
                 .background(Color.moka.opacity(0.12), in: Circle())
-            Text(title)
+            // As keys, so literal call sites hit the translation table; a dynamic
+            // message (an error) misses the table and shows as-is.
+            Text(LocalizedStringKey(title))
                 .font(.system(.title3, design: .serif).weight(.semibold))
-            Text(message)
+            Text(LocalizedStringKey(message))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -247,9 +249,19 @@ struct EngineBanner: View {
 extension Date {
     var shortText: String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_CL")
+        formatter.locale = .autoupdatingCurrent
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: self)
+    }
+
+    /// "Hoy", "Ayer" or a medium date, in the app's language.
+    var relativeDayText: String {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.doesRelativeDateFormatting = true
+        return formatter.string(from: self).localizedCapitalized
     }
 }

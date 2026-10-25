@@ -33,7 +33,7 @@ struct ExtensionsView: View {
                     } label: {
                         Label(
                             extensions.updateCount == 1
-                                ? "Actualizar todo (1)"
+                                ? LocalizedStringKey("Actualizar todo (1)")
                                 : "Actualizar todo (\(extensions.updateCount))",
                             systemImage: "arrow.down.circle"
                         )
@@ -123,9 +123,15 @@ struct ExtensionsView: View {
             ExtensionIcon(url: record.iconURL)
             VStack(alignment: .leading, spacing: 2) {
                 Text(record.name)
-                Text("v\(record.versionName) · \(record.sources.count == 1 ? "1 fuente" : "\(record.sources.count) fuentes")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Group {
+                    if record.sources.count == 1 {
+                        Text("v\(record.versionName) · 1 fuente")
+                    } else {
+                        Text("v\(record.versionName) · \(record.sources.count) fuentes")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             Spacer()
             if let update = extensions.catalog.first(where: { $0.packageName == record.id }),
@@ -145,11 +151,13 @@ struct ExtensionsView: View {
             ExtensionIcon(url: item.iconURL)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
-                Text(
-                    item.languages.count > 6
-                        ? item.languages.prefix(6).map(Language.displayName).joined(separator: ", ") + " y \(item.languages.count - 6) más"
-                        : item.languages.map(Language.displayName).joined(separator: ", ")
-                )
+                Group {
+                    if item.languages.count > 6 {
+                        Text("\(item.languages.prefix(6).map(Language.displayName).joined(separator: ", ")) y \(item.languages.count - 6) más")
+                    } else {
+                        Text(item.languages.map(Language.displayName).joined(separator: ", "))
+                    }
+                }
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -170,7 +178,7 @@ struct ExtensionsView: View {
             if extensions.installing.contains(item.packageName) {
                 ProgressView()
             } else {
-                Button(title) {
+                Button(LocalizedStringKey(title)) {
                     Task { await extensions.install(item) }
                 }
                 .buttonStyle(.bordered)

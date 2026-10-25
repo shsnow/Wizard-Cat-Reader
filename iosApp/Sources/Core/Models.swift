@@ -28,12 +28,12 @@ struct MangaItem: Codable, Hashable, Identifiable {
     /// Mihon's SManga status codes.
     var statusText: String? {
         switch status {
-            case 1: return "En curso"
-            case 2: return "Completado"
-            case 3: return "Licenciado"
-            case 4: return "Publicación terminada"
-            case 5: return "Cancelado"
-            case 6: return "En pausa"
+            case 1: return NSLocalizedString("En curso", comment: "")
+            case 2: return NSLocalizedString("Completado", comment: "")
+            case 3: return NSLocalizedString("Licenciado", comment: "")
+            case 4: return NSLocalizedString("Publicación terminada", comment: "")
+            case 5: return NSLocalizedString("Cancelado", comment: "")
+            case 6: return NSLocalizedString("En pausa", comment: "")
             default: return nil
         }
     }
@@ -82,9 +82,9 @@ enum ReadingMode: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-            case .webtoon: return "Webtoon (vertical)"
-            case .leftToRight: return "Izquierda → derecha"
-            case .rightToLeft: return "Derecha → izquierda (manga)"
+            case .webtoon: return NSLocalizedString("Webtoon (vertical)", comment: "")
+            case .leftToRight: return NSLocalizedString("Izquierda → derecha", comment: "")
+            case .rightToLeft: return NSLocalizedString("Derecha → izquierda (manga)", comment: "")
         }
     }
 
@@ -168,9 +168,9 @@ struct SourceRef: Hashable {
 
 enum Language {
     static func displayName(_ code: String) -> String {
-        if code == "all" { return "Multi-idioma" }
-        if code == "other" { return "Otro" }
-        let locale = Locale(identifier: "es")
-        return locale.localizedString(forIdentifier: code)?.capitalized ?? code
+        if code == "all" { return NSLocalizedString("Multi-idioma", comment: "") }
+        if code == "other" { return NSLocalizedString("Otro", comment: "") }
+        return Locale.autoupdatingCurrent.localizedString(forIdentifier: code)?.capitalized
+            ?? code
     }
 }

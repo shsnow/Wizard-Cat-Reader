@@ -1,6 +1,20 @@
 import Foundation
 import SwiftUI
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case system, spanish, english
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+            case .system: return NSLocalizedString("Como el sistema", comment: "")
+            case .spanish: return "Español"
+            case .english: return "English"
+        }
+    }
+}
+
 enum AppTheme: String, CaseIterable, Identifiable {
     case system, light, dark
 
@@ -8,9 +22,9 @@ enum AppTheme: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-            case .system: return "Como el sistema"
-            case .light: return "Claro"
-            case .dark: return "Oscuro"
+            case .system: return NSLocalizedString("Como el sistema", comment: "")
+            case .light: return NSLocalizedString("Claro", comment: "")
+            case .dark: return NSLocalizedString("Oscuro", comment: "")
         }
     }
 
@@ -30,9 +44,9 @@ enum ReaderBackground: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-            case .black: return "Negro"
-            case .white: return "Blanco"
-            case .system: return "Como el sistema"
+            case .black: return NSLocalizedString("Negro", comment: "")
+            case .white: return NSLocalizedString("Blanco", comment: "")
+            case .system: return NSLocalizedString("Como el sistema", comment: "")
         }
     }
 
@@ -53,9 +67,9 @@ enum DoublePageMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-            case .off: return "Nunca"
-            case .landscape: return "En horizontal"
-            case .always: return "Siempre"
+            case .off: return NSLocalizedString("Nunca", comment: "")
+            case .landscape: return NSLocalizedString("En horizontal", comment: "")
+            case .always: return NSLocalizedString("Siempre", comment: "")
         }
     }
 }
@@ -67,9 +81,9 @@ enum LibrarySort: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-            case .recent: return "Recién leídos"
-            case .title: return "Título"
-            case .unread: return "Sin leer"
+            case .recent: return NSLocalizedString("Recién leídos", comment: "")
+            case .title: return NSLocalizedString("Título", comment: "")
+            case .unread: return NSLocalizedString("Sin leer", comment: "")
         }
     }
 }
@@ -92,6 +106,19 @@ final class AppSettings: ObservableObject {
 
     @Published var appTheme: AppTheme {
         didSet { defaults.set(appTheme.rawValue, forKey: "appTheme") }
+    }
+
+    /// The app's own language. iOS reads AppleLanguages at launch, so a change
+    /// applies the next time the app opens.
+    @Published var appLanguage: AppLanguage {
+        didSet {
+            defaults.set(appLanguage.rawValue, forKey: "appLanguage")
+            switch appLanguage {
+                case .system: defaults.removeObject(forKey: "AppleLanguages")
+                case .spanish: defaults.set(["es"], forKey: "AppleLanguages")
+                case .english: defaults.set(["en"], forKey: "AppleLanguages")
+            }
+        }
     }
 
     @Published var gridColumns: Int {
@@ -185,6 +212,7 @@ final class AppSettings: ObservableObject {
             languages = ["es", "es-419", "en", "all"]
         }
         appTheme = AppTheme(rawValue: defaults.string(forKey: "appTheme") ?? "") ?? .system
+        appLanguage = AppLanguage(rawValue: defaults.string(forKey: "appLanguage") ?? "") ?? .system
         let columns = defaults.integer(forKey: "gridColumns")
         gridColumns = (2...4).contains(columns) ? columns : 3
         librarySort = LibrarySort(rawValue: defaults.string(forKey: "librarySort") ?? "") ?? .recent

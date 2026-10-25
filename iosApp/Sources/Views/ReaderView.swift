@@ -402,7 +402,9 @@ struct ReaderView: View {
             // The strip may have been rebuilt (mode switch, chapter jump) while this loaded.
             guard mode == .webtoon, segments.last?.chapterIndex == last.chapterIndex else { return }
             guard !loaded.isEmpty else {
-                nextError = "\(target.name) no tiene páginas."
+                nextError = String(
+                    format: NSLocalizedString("%@ no tiene páginas.", comment: ""), target.name
+                )
                 return
             }
             segments.append(
@@ -671,7 +673,11 @@ struct ReaderView: View {
                         } label: {
                             Image(systemName: isAutoScrolling ? "pause.circle.fill" : "play.circle")
                         }
-                        .accessibilityLabel(isAutoScrolling ? "Pausar autodesplazamiento" : "Autodesplazamiento")
+                        .accessibilityLabel(
+                            isAutoScrolling
+                                ? Text("Pausar autodesplazamiento")
+                                : Text("Autodesplazamiento")
+                        )
                     }
 
                     if !pages.isEmpty {
@@ -808,7 +814,7 @@ struct ReaderView: View {
             )
             guard target == chapter else { return }
             if loaded.isEmpty {
-                error = "Este capítulo no tiene páginas."
+                error = NSLocalizedString("Este capítulo no tiene páginas.", comment: "")
             }
             pages = loaded
             segments = loaded.isEmpty ? [] : [

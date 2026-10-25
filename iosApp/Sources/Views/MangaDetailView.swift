@@ -156,7 +156,11 @@ struct MangaDetailView: View {
                 } label: {
                     Image(systemName: library.contains(manga) ? "bookmark.fill" : "bookmark")
                 }
-                .accessibilityLabel(library.contains(manga) ? "Quitar de la biblioteca" : "Guardar en la biblioteca")
+                .accessibilityLabel(
+                    library.contains(manga)
+                        ? Text("Quitar de la biblioteca")
+                        : Text("Guardar en la biblioteca")
+                )
                 if siteURL != nil || library.contains(manga) || (installed != nil && !manga.isLocal) {
                     Menu {
                         if scanlators.count >= 2 {
@@ -180,11 +184,13 @@ struct MangaDetailView: View {
                                     Label("Quitar portada personalizada", systemImage: "photo.on.rectangle.angled")
                                 }
                             }
-                            Divider()
-                            Button {
-                                migrating = true
-                            } label: {
-                                Label("Migrar de fuente", systemImage: "arrow.left.arrow.right")
+                            if !manga.isLocal {
+                                Divider()
+                                Button {
+                                    migrating = true
+                                } label: {
+                                    Label("Migrar de fuente", systemImage: "arrow.left.arrow.right")
+                                }
                             }
                         }
                         if installed != nil && !manga.isLocal {
@@ -291,7 +297,7 @@ struct MangaDetailView: View {
             Button("Quitar", role: .destructive) { library.remove(manga) }
         } message: {
             Text(manga.isLocal
-                ? "Se borran también los archivos CBZ importados de esta serie. Esto no se puede deshacer."
+                ? LocalizedStringKey("Se borran también los archivos CBZ importados de esta serie. Esto no se puede deshacer.")
                 : "Se pierden la nota y las categorías de esta serie.")
         }
         .alert(
@@ -401,7 +407,7 @@ struct MangaDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(expanded ? nil : 4)
-            Button(expanded ? "Ver menos" : "Ver más") {
+            Button(expanded ? LocalizedStringKey("Ver menos") : "Ver más") {
                 withAnimation { expanded.toggle() }
             }
             .font(.footnote.weight(.semibold))
@@ -482,7 +488,7 @@ struct MangaDetailView: View {
             if selectingChapters {
                 Text("\(selectedChapters.count) seleccionados")
                 Spacer()
-                Button(selectedChapters.count == effectiveChapters.count ? "Ninguno" : "Todos") {
+                Button(selectedChapters.count == effectiveChapters.count ? LocalizedStringKey("Ninguno") : "Todos") {
                     selectedChapters = selectedChapters.count == effectiveChapters.count
                         ? []
                         : Set(effectiveChapters.map(\.url))
@@ -493,7 +499,9 @@ struct MangaDetailView: View {
                 }
                 .fontWeight(.semibold)
             } else {
-                Text(effectiveChapters.count == 1 ? "1 capítulo" : "\(effectiveChapters.count) capítulos")
+                Text(effectiveChapters.count == 1
+                    ? LocalizedStringKey("1 capítulo")
+                    : "\(effectiveChapters.count) capítulos")
                 Spacer()
                 Button {
                     newestFirst.toggle()
@@ -647,7 +655,7 @@ struct MangaDetailView: View {
         )
         .swipeActions(edge: .trailing) {
             if !selectingChapters {
-                Button(read ? "No leído" : "Leído") {
+                Button(read ? LocalizedStringKey("No leído") : "Leído") {
                     library.setRead(!read, chapter: chapter, in: manga)
                 }
                 .tint(read ? .gray : .moka)
@@ -660,7 +668,7 @@ struct MangaDetailView: View {
         }
         .swipeActions(edge: .leading) {
             if !selectingChapters {
-                Button(bookmarked ? "Quitar" : "Favorito") {
+                Button(bookmarked ? LocalizedStringKey("Quitar") : "Favorito") {
                     library.toggleBookmark(chapterURLs: [chapter.url], in: manga)
                 }
                 .tint(.orange)
@@ -708,7 +716,7 @@ struct MangaDetailView: View {
             VStack(spacing: 3) {
                 Image(systemName: symbol)
                     .font(.body)
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.caption2)
             }
             .frame(maxWidth: .infinity)
@@ -739,9 +747,13 @@ struct MangaDetailView: View {
     }
 
     private func buttonTitle(for target: ChapterItem) -> String {
-        if library.lastRead(in: manga) == nil { return "Empezar a leer" }
-        if unread.isEmpty { return "Releer: \(target.name)" }
-        return "Continuar: \(target.name)"
+        if library.lastRead(in: manga) == nil {
+            return NSLocalizedString("Empezar a leer", comment: "")
+        }
+        if unread.isEmpty {
+            return String(format: NSLocalizedString("Releer: %@", comment: ""), target.name)
+        }
+        return String(format: NSLocalizedString("Continuar: %@", comment: ""), target.name)
     }
 
     private var modeBinding: Binding<ReadingMode> {
@@ -775,7 +787,10 @@ struct MangaDetailView: View {
 
     private func open(_ chapter: ChapterItem) {
         guard let installed else {
-            actionError = "Instala la extensión de esta fuente (pestaña Extensiones) para leer sus capítulos."
+            actionError = NSLocalizedString(
+                "Instala la extensión de esta fuente (pestaña Extensiones) para leer sus capítulos.",
+                comment: ""
+            )
             return
         }
         let ordered = ascending
@@ -788,13 +803,19 @@ struct MangaDetailView: View {
             let loaded = LocalStore.chapters(for: manga)
             chapters = loaded
             error = loaded.isEmpty
-                ? "Esta serie ya no tiene archivos. Importa sus CBZ otra vez desde la Biblioteca."
+                ? NSLocalizedString(
+                    "Esta serie ya no tiene archivos. Importa sus CBZ otra vez desde la Biblioteca.",
+                    comment: ""
+                )
                 : nil
             if library.contains(manga) { library.refresh(manga, chapters: loaded) }
             return
         }
         guard let installed else {
-            error = "Instala la extensión de esta fuente para ver sus capítulos."
+            error = NSLocalizedString(
+                "Instala la extensión de esta fuente para ver sus capítulos.",
+                comment: ""
+            )
             return
         }
         isLoading = true

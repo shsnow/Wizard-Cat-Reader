@@ -120,6 +120,11 @@ notas al revisor, pero "acceso web sin restricciones" manda en el cuestionario.)
 > app using the + button in the Library tab; imported comics work fully offline.
 >
 > The app is free, has no ads, no purchases, no accounts, and collects no data.
+>
+> About the App Transport Security exception (NSAllowsArbitraryLoads): users connect
+> their own self-hosted media servers (e.g. Komga) on local networks, which commonly
+> run on plain HTTP without certificates. The app itself performs no HTTP traffic of
+> its own — every connection goes to servers or sources the user explicitly adds.
 
 ### La demo: resuelta con contenido local ✅
 

@@ -27,14 +27,18 @@ enum EngineError: LocalizedError {
     var errorDescription: String? {
         switch self {
             case .host(let message): return Self.readable(message)
-            case .emptyImage: return "La extensión devolvió una imagen vacía."
+            case .emptyImage:
+                return NSLocalizedString("La extensión devolvió una imagen vacía.", comment: "")
         }
     }
 
     static func readable(_ message: String) -> String {
         let lowered = message.lowercased()
         if lowered.contains("cloudflare") {
-            return "El sitio pidió una verificación de Cloudflare. Abre la fuente en WebView (el botón del globo), resuelve la verificación y reintenta."
+            return NSLocalizedString(
+                "El sitio pidió una verificación de Cloudflare. Abre la fuente en WebView (el botón del globo), resuelve la verificación y reintenta.",
+                comment: ""
+            )
         }
         return message
     }

@@ -110,7 +110,8 @@ struct SourceBrowseView: View {
             EngineBanner()
             if source.supportsLatest && submittedQuery.isEmpty && appliedFilterStates == nil {
                 Picker("Lista", selection: $mode) {
-                    ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
+                    // LocalizedStringKey: a plain String would skip the translation table.
+                    ForEach(Mode.allCases) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
@@ -242,7 +243,7 @@ struct SourceBrowseView: View {
     private func loadNextPage() async {
         guard !isLoading, hasNextPage else { return }
         guard let installed = extensions.extensionFor(sourceId: source.id) else {
-            error = "La extensión de esta fuente ya no está instalada."
+            error = NSLocalizedString("La extensión de esta fuente ya no está instalada.", comment: "")
             return
         }
         isLoading = true

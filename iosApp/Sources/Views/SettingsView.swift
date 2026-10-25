@@ -48,15 +48,20 @@ struct SettingsView: View {
                     HStack {
                         hubRow("Idiomas de fuentes", symbol: "globe")
                         Spacer()
-                        Text(settings.languages.isEmpty ? "Todos" : "\(settings.languages.count)")
+                        Text(settings.languages.isEmpty
+                            ? LocalizedStringKey("Todos")
+                            : "\(settings.languages.count)")
                             .foregroundStyle(.secondary)
                     }
                 }
             }
 
-            Section("Apariencia") {
+            Section {
                 Picker("Tema", selection: $settings.appTheme) {
                     ForEach(AppTheme.allCases) { Text($0.title).tag($0) }
+                }
+                Picker("Idioma de la app", selection: $settings.appLanguage) {
+                    ForEach(AppLanguage.allCases) { Text($0.title).tag($0) }
                 }
                 if UIApplication.shared.supportsAlternateIcons {
                     NavigationLink {
@@ -69,6 +74,12 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                }
+            } header: {
+                Text("Apariencia")
+            } footer: {
+                if settings.appLanguage != .system {
+                    Text("El idioma se aplica al volver a abrir la app.")
                 }
             }
 
@@ -101,6 +112,12 @@ struct SettingsView: View {
                         LocalStore.shared.restoreSample(library: library)
                     }
                 }
+                if let support = URL(string: "https://shsnow.github.io/Wizard-Cat-Reader/") {
+                    Link("Sitio de soporte", destination: support)
+                }
+                if let privacy = URL(string: "https://shsnow.github.io/Wizard-Cat-Reader/privacy.html") {
+                    Link("Política de privacidad", destination: privacy)
+                }
                 NavigationLink("Licencias y créditos") { LicensesView() }
             } header: {
                 Text("Acerca de")
@@ -120,7 +137,7 @@ struct SettingsView: View {
                 .font(.body)
                 .foregroundStyle(Color.moka)
                 .frame(width: 26)
-            Text(title)
+            Text(LocalizedStringKey(title))
         }
     }
 
@@ -171,7 +188,7 @@ struct ReaderSettingsView: View {
             } footer: {
                 Text(
                     settings.tapZonesEnabled
-                        ? "Con las zonas invertidas, el borde que avanza queda al otro lado: útil para leer con la otra mano."
+                        ? LocalizedStringKey("Con las zonas invertidas, el borde que avanza queda al otro lado: útil para leer con la otra mano.")
                         : "El número de página se muestra chico en una esquina mientras los controles están ocultos."
                 )
             }
@@ -206,7 +223,9 @@ struct LibrarySettingsView: View {
                     HStack {
                         Text("Categorías")
                         Spacer()
-                        Text(library.categories.isEmpty ? "Ninguna" : "\(library.categories.count)")
+                        Text(library.categories.isEmpty
+                            ? LocalizedStringKey("Ninguna")
+                            : "\(library.categories.count)")
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -359,12 +378,13 @@ struct DataSettingsView: View {
             } header: {
                 Text("Sincronización entre dispositivos")
             } footer: {
-                Text(
-                    "Elige una carpeta en la nube (iCloud Drive, Google Drive, Dropbox…). " +
-                    "Wizard Cat Reader deja ahí su copia y combina las copias .tachibk que " +
-                    "encuentre, al abrir la app y al salir. Para sincronizar con Mihon en " +
-                    "Android, guarda sus copias automáticas en esta misma carpeta."
-                )
+                // One single literal: "A" + "B" would become a String and skip the table.
+                Text("""
+                Elige una carpeta en la nube (iCloud Drive, Google Drive, Dropbox…). \
+                Wizard Cat Reader deja ahí su copia y combina las copias .tachibk que \
+                encuentre, al abrir la app y al salir. Para sincronizar con Mihon en \
+                Android, guarda sus copias automáticas en esta misma carpeta.
+                """)
             }
 
             Section {
@@ -424,7 +444,7 @@ struct DataSettingsView: View {
             restore(from: url)
         }
         .alert(
-            importError == nil ? "Copia restaurada" : "No se pudo restaurar",
+            importError == nil ? Text("Copia restaurada") : Text("No se pudo restaurar"),
             isPresented: Binding(
                 get: { importSummary != nil || importError != nil },
                 set: { if !$0 { importSummary = nil; importError = nil } }
@@ -518,16 +538,22 @@ struct AdvancedSettingsView: View {
                     cleared += 1
                 }
             }
-            cookiesResult = cleared == 0 ? "Sin cambios" : "Listo (\(cleared))"
+            cookiesResult = cleared == 0
+                ? NSLocalizedString("Sin cambios", comment: "")
+                : String(format: NSLocalizedString("Listo (%lld)", comment: ""), cleared)
         }
     }
 
     private var engineText: String {
         switch engine.state {
-            case .idle: return "Detenido (inicia al usar una fuente)"
-            case .starting: return "Iniciando…"
-            case .ready(let description): return description
-            case .failed(let message): return "Error: \(message)"
+            case .idle:
+                return NSLocalizedString("Detenido (inicia al usar una fuente)", comment: "")
+            case .starting:
+                return NSLocalizedString("Iniciando…", comment: "")
+            case .ready(let description):
+                return description
+            case .failed(let message):
+                return String(format: NSLocalizedString("Error: %@", comment: ""), message)
         }
     }
 }
@@ -544,9 +570,9 @@ enum AppIconChoice: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-            case .classic: return "Clásico"
-            case .night: return "Noche"
-            case .terra: return "Terracota"
+            case .classic: return NSLocalizedString("Clásico", comment: "")
+            case .night: return NSLocalizedString("Noche", comment: "")
+            case .terra: return NSLocalizedString("Terracota", comment: "")
         }
     }
 
@@ -630,7 +656,7 @@ struct LanguagePicker: View {
     var body: some View {
         List {
             Section {
-                Button(settings.languages.isEmpty ? "Mostrando todos" : "Mostrar todos") {
+                Button(settings.languages.isEmpty ? LocalizedStringKey("Mostrando todos") : "Mostrar todos") {
                     settings.languages = []
                 }
             }

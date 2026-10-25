@@ -45,6 +45,11 @@ targets:
       # The guide comic seeded into the library on first launch.
       - path: Resources/SampleComics/guia-wizard-cat.cbz
         buildPhase: resources
+      # English translation table; the Spanish source strings are the keys.
+      # As a folder it lands as en.lproj/ at the bundle root, where NSBundle looks.
+      - path: Resources/Localization/en.lproj
+        type: folder
+        buildPhase: resources
     dependencies:
       # Static library: linked, never embedded.
       - framework: Vendor/jvm/OpenJDK.xcframework
@@ -56,13 +61,17 @@ targets:
       path: Sources/Info.plist
       properties:
         CFBundleDevelopmentRegion: es
+        CFBundleLocalizations:
+          - es
+          - en
         CFBundleDisplayName: "Wizard Cat Reader"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleIconName: AppIcon
         ITSAppUsesNonExemptEncryption: false
         LSRequiresIPhoneOS: true
-        UILaunchScreen: {}
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         UIUserInterfaceStyle: Automatic
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

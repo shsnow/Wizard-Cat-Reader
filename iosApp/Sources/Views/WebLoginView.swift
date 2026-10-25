@@ -91,7 +91,7 @@ struct WebLoginSheet: View {
             )
             let base = info.baseURL == "null" ? "" : info.baseURL
             guard let target = startURL ?? URL(string: base), target.scheme != nil else {
-                loadError = "La fuente no tiene un sitio web."
+                loadError = NSLocalizedString("La fuente no tiene un sitio web.", comment: "")
                 return
             }
             self.info = info

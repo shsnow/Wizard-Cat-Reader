@@ -1,0 +1,365 @@
+/* Wizard Cat Reader — English. The keys are the Spanish source strings. */
+
+/* Tabs and main screens */
+"Biblioteca" = "Library";
+"Actividad" = "Activity";
+"Explorar" = "Browse";
+"Extensiones" = "Extensions";
+"Ajustes" = "Settings";
+"Novedades" = "Updates";
+"Historial" = "History";
+"Descargas" = "Downloads";
+"Categorías" = "Categories";
+"Estadísticas" = "Statistics";
+"Estadísticas de lectura" = "Reading statistics";
+"Copias de seguridad" = "Backups";
+"Avanzado" = "Advanced";
+"Lectura" = "Reading";
+"Apariencia" = "Appearance";
+"Acerca de" = "About";
+"Licencias" = "Licenses";
+"Licencias y créditos" = "Licenses and credits";
+"Filtros" = "Filters";
+"Filtros de búsqueda" = "Search filters";
+"Repositorios" = "Repositories";
+"Página" = "Page";
+"Controles" = "Controls";
+"Cuadrícula" = "Grid";
+"Lista" = "List";
+"Sección" = "Section";
+"Estado" = "Status";
+"Nota" = "Note";
+"Nombre" = "Name";
+"Versión" = "Version";
+"Carpeta" = "Folder";
+"Categoría" = "Category";
+"Tema" = "Theme";
+"Idiomas" = "Languages";
+"Idiomas de fuentes" = "Source languages";
+"Idioma de la app" = "App language";
+
+/* Common actions */
+"OK" = "OK";
+"Cancelar" = "Cancel";
+"Cancelar todo" = "Cancel all";
+"Guardar" = "Save";
+"Crear" = "Create";
+"Agregar" = "Add";
+"Aplicar" = "Apply";
+"Borrar" = "Delete";
+"Borrar todo" = "Delete all";
+"Eliminar" = "Delete";
+"Quitar" = "Remove";
+"Importar" = "Import";
+"Listo" = "Done";
+"Detener" = "Stop";
+"Descartar" = "Dismiss";
+"Reintentar" = "Retry";
+"Recargar" = "Reload";
+"Restablecer" = "Reset";
+"Actualizar" = "Update";
+"Obtener" = "Get";
+"Desinstalar" = "Uninstall";
+"Instalada" = "Installed";
+"Instaladas" = "Installed";
+"Disponibles" = "Available";
+"Ver más" = "Show more";
+"Ver menos" = "Show less";
+"Cerrar" = "Close";
+"Todos" = "All";
+"Todas" = "All";
+"Ninguna" = "None";
+"Ninguno" = "None";
+"Favorito" = "Favorite";
+"Leído" = "Read";
+"No leído" = "Unread";
+"Nuevo" = "New";
+"Bajar" = "Download";
+"Mediano" = "Medium";
+"Pequeño" = "Small";
+
+/* Library */
+"Tu biblioteca está vacía" = "Your library is empty";
+"Busca algo en Explorar y toca el marcador para guardarlo aquí." = "Find something in Browse and tap the bookmark to keep it here.";
+"Nada por aquí" = "Nothing here";
+"Sin resultados" = "No results";
+"Prueba con otra búsqueda u otros filtros." = "Try another search or different filters.";
+"Buscar en la biblioteca" = "Search your library";
+"Seguir leyendo" = "Continue reading";
+"Fila \"Seguir leyendo\"" = "\"Continue reading\" row";
+"Seleccionar series" = "Select series";
+"Ordenar biblioteca" = "Sort library";
+"Ordenar por" = "Sort by";
+"Series por fila" = "Series per row";
+"Insignias de capítulos sin leer" = "Unread chapter badges";
+"%lld seleccionadas" = "%lld selected";
+"%lld seleccionados" = "%lld selected";
+"¿Quitar 1 serie de la biblioteca?" = "Remove 1 series from your library?";
+"¿Quitar %lld series de la biblioteca?" = "Remove %lld series from your library?";
+"Las series importadas se quitan junto con sus archivos CBZ. Esto no se puede deshacer." = "Imported series are removed together with their CBZ files. This cannot be undone.";
+"Importar cómics (CBZ)" = "Import comics (CBZ)";
+"Importar como serie" = "Import as a series";
+"Título de la serie" = "Series title";
+"El CBZ se agrega como capítulo de esta serie." = "The CBZ is added as a chapter of this series.";
+"Los %lld CBZ se agregan como capítulos de esta serie." = "The %lld CBZ files are added as chapters of this series.";
+"No se pudo importar" = "Could not import";
+"Nueva categoría" = "New category";
+"Nueva categoría…" = "New category…";
+"Renombrar categoría" = "Rename category";
+"Por ejemplo: Favoritos, Al día, Pendientes…" = "For example: Favorites, Caught up, To read…";
+"Crea categorías como Favoritos, Al día o Pendientes para organizar tu biblioteca." = "Create categories like Favorites, Caught up or To read to organize your library.";
+
+/* Activity */
+"Sin novedades" = "No updates";
+"Guarda series en tu biblioteca para ver aquí sus capítulos nuevos." = "Save series to your library to see their new chapters here.";
+"Sin historial" = "No history";
+"Los capítulos que abras van a aparecer aquí." = "Chapters you open will show up here.";
+"Buscar en el historial" = "Search history";
+"Borrar historial" = "Clear history";
+"¿Borrar todo el historial de lectura?" = "Clear all reading history?";
+"Actualizar biblioteca" = "Update library";
+"Actualizando %lld de %lld…" = "Updating %lld of %lld…";
+"Descargando 1 capítulo…" = "Downloading 1 chapter…";
+"Descargando %lld capítulos…" = "Downloading %lld chapters…";
+"Sin capítulos nuevos (%@)." = "No new chapters (%@).";
+"1 capítulo nuevo." = "1 new chapter.";
+"%lld capítulos nuevos." = "%lld new chapters.";
+
+/* Series detail */
+"1 capítulo" = "1 chapter";
+"%lld capítulos" = "%lld chapters";
+"Buscar capítulo" = "Search chapters";
+"Capítulo anterior" = "Previous chapter";
+"Capítulo siguiente" = "Next chapter";
+"Modo de lectura" = "Reading mode";
+"Modo por defecto" = "Default mode";
+"Más opciones" = "More options";
+"Nota de la serie" = "Series note";
+"Scanlator preferido" = "Preferred scanlator";
+"Todos los grupos" = "All groups";
+"Cambiar portada" = "Change cover";
+"Quitar portada personalizada" = "Remove custom cover";
+"Abrir en el sitio" = "Open on the site";
+"Abrir en WebView" = "Open in WebView";
+"Compartir enlace" = "Share link";
+"Migrar de fuente" = "Migrate source";
+"Quitar de la biblioteca" = "Remove from library";
+"Guardar en la biblioteca" = "Save to library";
+"¿Quitar de la biblioteca?" = "Remove from library?";
+"Se pierden la nota y las categorías de esta serie." = "This series' note and categories will be lost.";
+"Se borran también los archivos CBZ importados de esta serie. Esto no se puede deshacer." = "This series' imported CBZ files are deleted too. This cannot be undone.";
+"Seleccionar capítulos" = "Select chapters";
+"Seleccionar este y anteriores" = "Select this one and earlier";
+"Seleccionar este y siguientes" = "Select this one and later";
+"Marcar leídos este y anteriores (%lld)" = "Mark this one and earlier as read (%lld)";
+"Marcar no leídos este y anteriores" = "Mark this one and earlier as unread";
+"Descargar este y anteriores (%lld)" = "Download this one and earlier (%lld)";
+"Desde este capítulo" = "From this chapter";
+"Siguientes 5 sin leer" = "Next 5 unread";
+"Todos los sin leer (%lld)" = "All unread (%lld)";
+"Todos los capítulos" = "All chapters";
+"Descargar capítulo" = "Download chapter";
+"Descargar capítulos nuevos" = "Download new chapters";
+"Borrar descarga" = "Delete download";
+"Borrar descargas" = "Delete downloads";
+"Borrar descargas de esta serie" = "Delete this series' downloads";
+"¿Borrar las descargas de esta serie?" = "Delete this series' downloads?";
+"En curso" = "Ongoing";
+"Completado" = "Completed";
+"Licenciado" = "Licensed";
+"Publicación terminada" = "Publication finished";
+"Cancelado" = "Cancelled";
+"En pausa" = "On hiatus";
+"Instala la extensión de esta fuente para ver sus capítulos." = "Install this source's extension to see its chapters.";
+"Esta serie ya no tiene archivos. Importa sus CBZ otra vez desde la Biblioteca." = "This series has no files anymore. Import its CBZ files again from the Library.";
+
+/* Reader */
+"Webtoon (vertical)" = "Webtoon (vertical)";
+"Izquierda → derecha" = "Left → right";
+"Derecha → izquierda (manga)" = "Right → left (manga)";
+"Doble página" = "Double page";
+"Nunca" = "Never";
+"En horizontal" = "In landscape";
+"Siempre" = "Always";
+"Recortar bordes" = "Trim borders";
+"Fondo del lector" = "Reader background";
+"Margen lateral en webtoon" = "Webtoon side margin";
+"Sin margen" = "No margin";
+"Zonas de toque para pasar página" = "Tap zones to turn pages";
+"Invertir zonas de toque" = "Invert tap zones";
+"Mostrar número de página" = "Show page number";
+"Mantener la pantalla encendida" = "Keep the screen awake";
+"Cerrar lector" = "Close reader";
+"Cargando capítulo…" = "Loading chapter…";
+"Cargando el siguiente capítulo…" = "Loading the next chapter…";
+"No hay más capítulos por ahora." = "No more chapters for now.";
+"Terminaste %@" = "You finished %@";
+"Siguiente: %@" = "Next: %@";
+"Página %lld: %@" = "Page %lld: %@";
+"Este capítulo no tiene páginas." = "This chapter has no pages.";
+"%@ no tiene páginas." = "%@ has no pages.";
+"Pausar autodesplazamiento" = "Pause autoscroll";
+"Autodesplazamiento" = "Autoscroll";
+"Recién leídos" = "Recently read";
+"Título" = "Title";
+"Sin leer" = "Unread";
+
+/* Browse and sources */
+"Popular" = "Popular";
+"Recientes" = "Latest";
+"No hay fuentes" = "No sources";
+"Agrega un repositorio en la pestaña Extensiones e instala alguna." = "Add a repository in the Extensions tab and install one.";
+"Ninguna fuente en tus idiomas" = "No sources in your languages";
+"Cambia los idiomas visibles en Ajustes." = "Change the visible languages in Settings.";
+"No se pudo cargar" = "Could not load";
+"Abrir WebView" = "Open WebView";
+"Abrir el sitio en WebView" = "Open the site in WebView";
+"Buscar en %@" = "Search %@";
+"Buscar en otras fuentes" = "Search other sources";
+"Buscar en todas tus fuentes" = "Search all your sources";
+"Buscando…" = "Searching…";
+"Buscando en las primeras %lld fuentes. Filtra idiomas en Ajustes para acotar." = "Searching the first %lld sources. Filter languages in Settings to narrow it down.";
+"Filtros aplicados" = "Filters applied";
+"Cargando filtros…" = "Loading filters…";
+"Sin filtros" = "No filters";
+"Esta fuente no ofrece filtros de búsqueda." = "This source offers no search filters.";
+"Multi-idioma" = "Multi-language";
+"Otro" = "Other";
+"La extensión de esta fuente ya no está instalada." = "This source's extension is no longer installed.";
+"Contenido no disponible" = "Content unavailable";
+"Wizard Cat Reader es una app para toda la familia y no muestra contenido para adultos." = "Wizard Cat Reader is a family-friendly app and does not show adult content.";
+
+/* Extensions */
+"Todavía no has instalado ninguna extensión." = "You haven't installed any extensions yet.";
+"No hay extensiones para tus idiomas." = "No extensions for your languages.";
+"Buscar extensiones" = "Search extensions";
+"Agregar repositorio" = "Add repository";
+"Pega la URL del repositorio de extensiones de Mihon (index.pb)." = "Paste the Mihon extension repository URL (index.pb).";
+"Wizard Cat Reader no incluye ni recomienda repositorios. Agrega solo los que conozcas y en los que confíes." = "Wizard Cat Reader includes and recommends no repositories. Add only ones you know and trust.";
+"Los repositorios publican versiones nuevas cuando un sitio cambia y la extensión deja de funcionar." = "Repositories publish new versions when a site changes and the extension stops working.";
+"Actualizaciones" = "Updates";
+"Actualización" = "Update";
+"v%@ · 1 fuente" = "v%@ · 1 source";
+"v%@ · %lld fuentes" = "v%@ · %lld sources";
+"%@ y %lld más" = "%@ and %lld more";
+
+/* Downloads */
+"Capítulos descargados" = "Downloaded chapters";
+"No tienes capítulos descargados. Desde la ficha de una serie, toca el botón de descarga o desliza un capítulo hacia la derecha." = "You have no downloaded chapters. From a series page, tap the download button or swipe a chapter to the right.";
+"En cola…" = "Queued…";
+"En cola (%lld)" = "Queued (%lld)";
+"%lld en cola" = "%lld queued";
+"Con error" = "Failed";
+"Páginas simultáneas" = "Simultaneous pages";
+"Por serie" = "By series";
+"Borrar al terminar de leer" = "Delete when finished reading";
+"¿Borrar todas las descargas? (%@)" = "Delete all downloads? (%@)";
+"%lld págs · %@" = "%lld pages · %@";
+"Mantén Wizard Cat Reader abierto mientras descarga. Si sales de la app, la descarga sigue unos momentos y se retoma al volver." = "Keep Wizard Cat Reader open while downloading. If you leave the app, the download continues briefly and resumes when you return.";
+"Con la descarga automática, al actualizar la biblioteca los capítulos nuevos de tus series se guardan solos para leer sin conexión." = "With auto-download, new chapters of your series are saved for offline reading whenever the library updates.";
+"Actualizar al abrir la app" = "Update when the app opens";
+"Busca capítulos nuevos de tus series al abrir Wizard Cat Reader, como mucho cada 6 horas. También puedes actualizar cuando quieras desde Actividad." = "Checks for new chapters when Wizard Cat Reader opens, at most every 6 hours. You can also update any time from Activity.";
+
+/* Settings */
+"Como el sistema" = "Match the system";
+"Claro" = "Light";
+"Oscuro" = "Dark";
+"Clásico" = "Classic";
+"Noche" = "Night";
+"Terracota" = "Terracotta";
+"Ícono de la app" = "App icon";
+"El idioma se aplica al volver a abrir la app." = "The language applies the next time you open the app.";
+"Manhwa, manhua y webtoons se abren en modo vertical. Puedes cambiar el modo de cada serie desde su ficha o dentro del lector." = "Manhwa, manhua and webtoons open in vertical mode. You can change each series' mode from its page or inside the reader.";
+"Sitio de soporte" = "Support site";
+"Política de privacidad" = "Privacy policy";
+"Restaurar el cómic de guía" = "Restore the guide comic";
+"Wizard Cat Reader es para toda la familia: las extensiones y series para adultos se bloquean siempre." = "Wizard Cat Reader is family-friendly: adult extensions and series are always blocked.";
+"El tiempo de lectura se cuenta mientras tienes un capítulo abierto." = "Reading time counts while you have a chapter open.";
+"Tiempo de lectura desde el %@." = "Reading time since %@.";
+"Todavía no hay datos" = "No data yet";
+"Mostrando todos" = "Showing all";
+"Mostrar todos" = "Show all";
+
+/* Backups and sync */
+"Restaurar copia de Mihon" = "Restore a Mihon backup";
+"Exportar copia (.tachibk)" = "Export backup (.tachibk)";
+"La copia usa el formato .tachibk: puedes restaurarla aquí o en Mihon. Lo que ya tienes en Wizard Cat Reader se conserva y se combina." = "The backup uses the .tachibk format: restore it here or in Mihon. What you already have in Wizard Cat Reader is kept and merged.";
+"Copia restaurada" = "Backup restored";
+"No se pudo restaurar" = "Could not restore";
+"No se pudo exportar" = "Could not export";
+"Sincronización entre dispositivos" = "Sync between devices";
+"Elegir carpeta de sincronización" = "Choose a sync folder";
+"Sincronizar ahora" = "Sync now";
+"Última sincronización" = "Last sync";
+"Dejar de sincronizar" = "Stop syncing";
+"Elige una carpeta en la nube (iCloud Drive, Google Drive, Dropbox…). Wizard Cat Reader deja ahí su copia y combina las copias .tachibk que encuentre, al abrir la app y al salir. Para sincronizar con Mihon en Android, guarda sus copias automáticas en esta misma carpeta." = "Pick a cloud folder (iCloud Drive, Google Drive, Dropbox…). Wizard Cat Reader keeps its backup there and merges any .tachibk backups it finds, on open and on exit. To sync with Mihon on Android, point its automatic backups at this same folder.";
+"La carpeta de sincronización ya no está disponible. Elígela de nuevo." = "The sync folder is no longer available. Pick it again.";
+"No se pudo guardar el acceso a la carpeta: %@" = "Could not keep access to the folder: %@";
+"No se pudo escribir la copia: %@" = "Could not write the backup: %@";
+"El archivo no parece una copia de Mihon o Tachiyomi (.tachibk)." = "The file does not look like a Mihon or Tachiyomi backup (.tachibk).";
+"La copia no contiene series guardadas en la biblioteca." = "The backup contains no series saved to the library.";
+"Se importó 1 serie" = "Imported 1 series";
+"Se importaron %lld series" = "Imported %lld series";
+" (%lld nuevas, %lld actualizadas)" = " (%lld new, %lld updated)";
+", con sus capítulos leídos y tu progreso." = ", with their read chapters and your progress.";
+"1 serie para adultos se omitió." = "1 adult series was skipped.";
+"%lld series para adultos se omitieron." = "%lld adult series were skipped.";
+"Para cargar portadas y capítulos nuevos, instala estas extensiones: %@." = "To load covers and new chapters, install these extensions: %@.";
+" y %lld más" = " and %lld more";
+
+/* Advanced */
+"Motor de extensiones" = "Extension engine";
+"Iniciar motor" = "Start engine";
+"Iniciando el motor de extensiones…" = "Starting the extension engine…";
+"El motor no pudo iniciar: %@" = "The engine could not start: %@";
+"Limpiar caché de imágenes" = "Clear image cache";
+"La caché guarda portadas y páginas vistas recién para no volver a bajarlas." = "The cache keeps covers and recently viewed pages so they are not downloaded again.";
+"Limpiar cookies de las fuentes" = "Clear source cookies";
+"Borra inicios de sesión y permisos guardados de los sitios. Útil cuando una fuente se queda pegada." = "Deletes saved sign-ins and site permissions. Useful when a source gets stuck.";
+"Sin cambios" = "No changes";
+"Listo (%lld)" = "Done (%lld)";
+
+/* Migration */
+"¿Migrar la serie?" = "Migrate this series?";
+"Migrar a “%@”" = "Migrate to “%@”";
+"Migrando…" = "Migrating…";
+"No se pudo migrar" = "Could not migrate";
+"No hay otra fuente" = "No other source";
+"Instala otra extensión en la pestaña Extensiones para poder migrar." = "Install another extension in the Extensions tab to be able to migrate.";
+"Elige la misma serie en otra fuente. Toca una portada para migrar." = "Pick the same series on another source. Tap a cover to migrate.";
+"Lo leído, los favoritos y las categorías se traspasan empatando los capítulos por número. Pasará a %@. Las descargas de la fuente anterior quedan en Ajustes → Descargas." = "Read chapters, favorites and categories carry over by matching chapter numbers. It will move to %@. The old source's downloads remain under Settings → Downloads.";
+
+/* WebView login */
+"Abriendo el sitio…" = "Opening the site…";
+"No se pudo abrir el sitio" = "Could not open the site";
+"La fuente no tiene un sitio web." = "This source has no website.";
+"Resuelve la verificación o inicia sesión; las cookies se aplican a la fuente solas." = "Solve the verification or sign in; the cookies apply to the source on their own.";
+"El sitio pidió una verificación de Cloudflare. Abre la fuente en WebView (el botón del globo), resuelve la verificación y reintenta." = "The site asked for a Cloudflare verification. Open the source in WebView (the globe button), solve it, and retry.";
+
+/* Local comics */
+"%@ no es un archivo CBZ/ZIP válido." = "%@ is not a valid CBZ/ZIP file.";
+"%@ no contiene imágenes." = "%@ contains no images.";
+"No se pudo importar ningún archivo." = "No files could be imported.";
+
+/* Second review pass */
+"Actualizar todo (1)" = "Update all (1)";
+"Actualizar todo (%lld)" = "Update all (%lld)";
+"Con las zonas invertidas, el borde que avanza queda al otro lado: útil para leer con la otra mano." = "With inverted zones, the edge that moves forward is on the other side: handy for reading with your other hand.";
+"El número de página se muestra chico en una esquina mientras los controles están ocultos." = "The page number shows small in a corner while the controls are hidden.";
+"Esta categoría todavía no tiene series." = "This category has no series yet.";
+"Nada en tu biblioteca se llama “%@”." = "Nothing in your library is called “%@”.";
+"Negro" = "Black";
+"Blanco" = "White";
+"Detenido (inicia al usar una fuente)" = "Stopped (starts when a source is used)";
+"Iniciando…" = "Starting…";
+"Error: %@" = "Error: %@";
+"Empezar a leer" = "Start reading";
+"Releer: %@" = "Reread: %@";
+"Continuar: %@" = "Continue: %@";
+"Instala la extensión de esta fuente (pestaña Extensiones) para leer sus capítulos." = "Install this source's extension (Extensions tab) to read its chapters.";
+
+/* Misc */
+"Algo salió mal" = "Something went wrong";
+"No se pudieron cargar" = "Could not load";
+"No se puede abrir" = "Cannot open";
+"La extensión devolvió una imagen vacía." = "The extension returned an empty image.";

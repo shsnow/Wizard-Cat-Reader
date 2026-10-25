@@ -60,11 +60,17 @@ final class LocalStore {
         var errorDescription: String? {
             switch self {
                 case .notAnArchive(let name):
-                    return "\(name) no es un archivo CBZ/ZIP válido."
+                    return String(
+                        format: NSLocalizedString("%@ no es un archivo CBZ/ZIP válido.", comment: ""),
+                        name
+                    )
                 case .noImages(let name):
-                    return "\(name) no contiene imágenes."
+                    return String(
+                        format: NSLocalizedString("%@ no contiene imágenes.", comment: ""),
+                        name
+                    )
                 case .nothingImported:
-                    return "No se pudo importar ningún archivo."
+                    return NSLocalizedString("No se pudo importar ningún archivo.", comment: "")
             }
         }
     }

@@ -76,8 +76,11 @@ struct LibraryView: View {
                             symbol: query.isEmpty ? "tray" : "magnifyingglass",
                             title: query.isEmpty ? "Nada por aquí" : "Sin resultados",
                             message: query.isEmpty
-                                ? "Esta categoría todavía no tiene series."
-                                : "Nada en tu biblioteca se llama “\(query)”."
+                                ? NSLocalizedString("Esta categoría todavía no tiene series.", comment: "")
+                                : String(
+                                    format: NSLocalizedString("Nada en tu biblioteca se llama “%@”.", comment: ""),
+                                    query
+                                )
                         )
                     } else {
                         MangaGrid(
@@ -102,12 +105,12 @@ struct LibraryView: View {
                 .searchable(text: $query, prompt: "Buscar en la biblioteca")
             }
         }
-        .navigationTitle(isSelecting ? "\(selection.count) seleccionadas" : "Biblioteca")
+        .navigationTitle(isSelecting ? Text("\(selection.count) seleccionadas") : Text("Biblioteca"))
         .navigationBarTitleDisplayMode(isSelecting ? .inline : .large)
         .toolbar {
             if isSelecting {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(selection.count == items.count ? "Ninguna" : "Todas") {
+                    Button(selection.count == items.count ? LocalizedStringKey("Ninguna") : "Todas") {
                         selection = selection.count == items.count
                             ? []
                             : Set(items.map(\.manga.id))
@@ -173,8 +176,8 @@ struct LibraryView: View {
         }
         .confirmationDialog(
             selection.count == 1
-                ? "¿Quitar 1 serie de la biblioteca?"
-                : "¿Quitar \(selection.count) series de la biblioteca?",
+                ? Text("¿Quitar 1 serie de la biblioteca?")
+                : Text("¿Quitar \(selection.count) series de la biblioteca?"),
             isPresented: $confirmingRemoval,
             titleVisibility: .visible
         ) {
@@ -203,7 +206,7 @@ struct LibraryView: View {
             Button("Importar") { importPendingComics() }
         } message: {
             Text(pendingImports.count == 1
-                ? "El CBZ se agrega como capítulo de esta serie."
+                ? LocalizedStringKey("El CBZ se agrega como capítulo de esta serie.")
                 : "Los \(pendingImports.count) CBZ se agregan como capítulos de esta serie.")
         }
         .alert(

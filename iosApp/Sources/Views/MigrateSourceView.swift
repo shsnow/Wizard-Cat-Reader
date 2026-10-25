@@ -88,11 +88,12 @@ struct MigrateSourceView: View {
                 }
                 Button("Cancelar", role: .cancel) {}
             } message: { item in
-                Text(
-                    "Lo leído, los favoritos y las categorías se traspasan empatando los capítulos "
-                        + "por número. Pasará a \(sourceName(for: item)). Las descargas de la fuente "
-                        + "anterior quedan en Ajustes → Descargas."
-                )
+                // One single literal: "A" + "B" would become a String and skip the table.
+                Text("""
+                Lo leído, los favoritos y las categorías se traspasan empatando los capítulos \
+                por número. Pasará a \(sourceName(for: item)). Las descargas de la fuente \
+                anterior quedan en Ajustes → Descargas.
+                """)
             }
             .alert(
                 "No se pudo migrar",

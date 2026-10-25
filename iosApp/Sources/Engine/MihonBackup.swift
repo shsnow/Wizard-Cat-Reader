@@ -12,9 +12,15 @@ enum MihonBackupError: LocalizedError {
     var errorDescription: String? {
         switch self {
             case .notABackup:
-                return "El archivo no parece una copia de Mihon o Tachiyomi (.tachibk)."
+                return NSLocalizedString(
+                    "El archivo no parece una copia de Mihon o Tachiyomi (.tachibk).",
+                    comment: ""
+                )
             case .noFavorites:
-                return "La copia no contiene series guardadas en la biblioteca."
+                return NSLocalizedString(
+                    "La copia no contiene series guardadas en la biblioteca.",
+                    comment: ""
+                )
         }
     }
 }
@@ -181,25 +187,37 @@ struct MihonImportSummary {
     var missingSources: [String] = []
 
     var text: String {
+        func local(_ key: String) -> String { NSLocalizedString(key, comment: "") }
         var lines: [String] = []
         let imported = added + merged
         if imported > 0 {
-            var line = imported == 1 ? "Se importó 1 serie" : "Se importaron \(imported) series"
-            line += added > 0 && merged > 0 ? " (\(added) nuevas, \(merged) actualizadas)" : ""
-            line += ", con sus capítulos leídos y tu progreso."
+            var line = imported == 1
+                ? local("Se importó 1 serie")
+                : String(format: local("Se importaron %lld series"), imported)
+            if added > 0 && merged > 0 {
+                line += String(format: local(" (%lld nuevas, %lld actualizadas)"), added, merged)
+            }
+            line += local(", con sus capítulos leídos y tu progreso.")
             lines.append(line)
         }
         if skippedAdult > 0 {
             lines.append(
                 skippedAdult == 1
-                    ? "1 serie para adultos se omitió."
-                    : "\(skippedAdult) series para adultos se omitieron."
+                    ? local("1 serie para adultos se omitió.")
+                    : String(format: local("%lld series para adultos se omitieron."), skippedAdult)
             )
         }
         if !missingSources.isEmpty {
-            let shown = missingSources.prefix(6).joined(separator: ", ")
-            let extra = missingSources.count > 6 ? " y \(missingSources.count - 6) más" : ""
-            lines.append("Para cargar portadas y capítulos nuevos, instala estas extensiones: \(shown)\(extra).")
+            var shown = missingSources.prefix(6).joined(separator: ", ")
+            if missingSources.count > 6 {
+                shown += String(format: local(" y %lld más"), missingSources.count - 6)
+            }
+            lines.append(
+                String(
+                    format: local("Para cargar portadas y capítulos nuevos, instala estas extensiones: %@."),
+                    shown
+                )
+            )
         }
         return lines.joined(separator: "\n\n")
     }
@@ -219,7 +237,9 @@ enum MihonBackupImporter {
         var missing: Set<String> = []
         var items: [BackupImportItem] = []
 
-        for manga in backup.mangas where manga.favorite {
+        // Mihon's on-device "local source" is sourceId 0: its files live on the Android
+        // device, so importing those entries here would only produce dead series.
+        for manga in backup.mangas where manga.favorite && manga.source != 0 {
             summary.totalFavorites += 1
             let item = MangaItem(
                 sourceId: manga.source,

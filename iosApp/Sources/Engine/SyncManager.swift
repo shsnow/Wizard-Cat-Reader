@@ -57,7 +57,10 @@ final class SyncManager: ObservableObject {
             folderName = url.lastPathComponent
             lastError = nil
         } catch {
-            lastError = "No se pudo guardar el acceso a la carpeta: \(error.localizedDescription)"
+            lastError = String(
+                format: NSLocalizedString("No se pudo guardar el acceso a la carpeta: %@", comment: ""),
+                error.localizedDescription
+            )
         }
     }
 
@@ -82,7 +85,10 @@ final class SyncManager: ObservableObject {
         var stale = false
         guard let folder = try? URL(resolvingBookmarkData: bookmark, bookmarkDataIsStale: &stale)
         else {
-            lastError = "La carpeta de sincronización ya no está disponible. Elígela de nuevo."
+            lastError = NSLocalizedString(
+                "La carpeta de sincronización ya no está disponible. Elígela de nuevo.",
+                comment: ""
+            )
             return
         }
         let scoped = folder.startAccessingSecurityScopedResource()
@@ -98,8 +104,10 @@ final class SyncManager: ObservableObject {
         }
 
         // Export after importing, so the written backup carries the merged state.
-        // An empty library never overwrites a good backup.
-        if !library.entries.isEmpty {
+        // An empty library never overwrites a good backup. Local (CBZ) series are
+        // skipped by the export, so a library with only those would write an empty
+        // backup that other devices then reject as "not a backup".
+        if library.entries.values.contains(where: { !$0.manga.isLocal }) {
             do {
                 let data = try MihonBackupExport.make(library: library, extensions: extensions)
                 let destination = folder.appendingPathComponent(exportName)
@@ -123,7 +131,10 @@ final class SyncManager: ObservableObject {
                 lastSync = Date()
                 defaults.set(lastSync, forKey: Self.lastSyncKey)
             } catch {
-                problem = problem ?? "No se pudo escribir la copia: \(error.localizedDescription)"
+                problem = problem ?? String(
+                    format: NSLocalizedString("No se pudo escribir la copia: %@", comment: ""),
+                    error.localizedDescription
+                )
             }
         }
 
