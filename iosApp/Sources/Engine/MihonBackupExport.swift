@@ -63,6 +63,17 @@ enum MihonBackupExport {
         var writer = ProtobufWriter()
         var sourceIds: Set<Int64> = []
 
+        // Categories travel with the backup: each one's position is the "order"
+        // that BackupManga.categories (field 17) points at, the same way Mihon does.
+        var categoryOrder: [String: Int] = [:]
+        for (index, category) in library.categories.enumerated() {
+            categoryOrder[category.id] = index
+            writer.message(2) { backupCategory in
+                backupCategory.field(1, string: category.name)
+                backupCategory.field(2, varint: UInt64(index))
+            }
+        }
+
         for entry in entries {
             let manga = entry.manga
             // Imported series live as files on this device; Mihon could not restore them.
@@ -83,6 +94,11 @@ enum MihonBackupExport {
                     backupManga.field(9, string: thumbnail)
                 }
                 backupManga.field(13, int64: Int64(entry.addedAt.timeIntervalSince1970 * 1000))
+                for categoryId in entry.categories ?? [] {
+                    if let order = categoryOrder[categoryId] {
+                        backupManga.field(17, varint: UInt64(order))
+                    }
+                }
 
                 // Chapters are stored newest first; sourceOrder 0 = newest, as Mihon expects.
                 for (index, chapter) in entry.chapters.enumerated() {

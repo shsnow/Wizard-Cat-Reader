@@ -522,6 +522,14 @@ final class LibraryStore: ObservableObject {
                 // that is missing entirely. Replacing a fresher list would drop chapters
                 // added since the backup was taken.
                 if existing.chapters.isEmpty { existing.chapters = item.entry.chapters }
+                // Categories union: the backup's assignments join the local ones.
+                if let incoming = item.entry.categories, !incoming.isEmpty {
+                    var combined = existing.categories ?? []
+                    for categoryId in incoming where !combined.contains(categoryId) {
+                        combined.append(categoryId)
+                    }
+                    existing.categories = combined
+                }
                 entries[id] = existing
                 merged += 1
             } else {

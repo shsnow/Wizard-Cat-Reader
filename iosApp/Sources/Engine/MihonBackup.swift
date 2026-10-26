@@ -43,6 +43,12 @@ struct MihonBackup {
         var lastRead: Int64 = 0
     }
 
+    /// A library category; `order` is the number BackupManga.categoryOrders points at.
+    struct Category {
+        var name = ""
+        var order: Int64 = 0
+    }
+
     struct Manga {
         var source: Int64 = 0
         var url = ""
@@ -59,10 +65,12 @@ struct MihonBackup {
         var favorite = true
         var chapters: [Chapter] = []
         var history: [History] = []
+        var categoryOrders: [Int64] = []
     }
 
     var mangas: [Manga] = []
     var sourceNames: [Int64: String] = [:]
+    var categories: [Category] = []
 
     static func decode(_ raw: Data) throws -> MihonBackup {
         var data = raw
@@ -79,6 +87,8 @@ struct MihonBackup {
                 switch (field.number, field.value) {
                     case (1, .bytes(let value)):
                         backup.mangas.append(try manga(value))
+                    case (2, .bytes(let value)):
+                        backup.categories.append(try category(value))
                     case (101, .bytes(let value)):
                         let decoded = try source(value)
                         if decoded.id != 0 { backup.sourceNames[decoded.id] = decoded.name }
@@ -114,6 +124,12 @@ struct MihonBackup {
                 case (13, .varint(let value)): manga.dateAdded = Int64(bitPattern: value)
                 case (14, .varint(let value)): manga.viewer = Int(truncatingIfNeeded: value)
                 case (16, .bytes(let value)): manga.chapters.append(try chapter(value))
+                // Category references; kotlinx writes repeated varints, but a
+                // packed list from another writer decodes the same way.
+                case (17, .varint(let value)):
+                    manga.categoryOrders.append(Int64(bitPattern: value))
+                case (17, .bytes(let value)):
+                    manga.categoryOrders.append(contentsOf: packedVarints(value))
                 case (100, .varint(let value)): manga.favorite = value != 0
                 case (103, .varint(let value)): manga.viewerFlags = Int(truncatingIfNeeded: value)
                 case (104, .bytes(let value)): manga.history.append(try history(value))
@@ -156,6 +172,38 @@ struct MihonBackup {
             }
         }
         return history
+    }
+
+    private static func category(_ data: Data) throws -> Category {
+        var reader = ProtobufReader(data)
+        var category = Category()
+        while let field = try reader.nextField() {
+            switch (field.number, field.value) {
+                case (1, .bytes(let value)): category.name = string(value) ?? ""
+                case (2, .varint(let value)): category.order = Int64(bitPattern: value)
+                default: break
+            }
+        }
+        return category
+    }
+
+    /// Varints packed into one length-delimited field.
+    private static func packedVarints(_ data: Data) -> [Int64] {
+        var values: [Int64] = []
+        var current: UInt64 = 0
+        var shift: UInt64 = 0
+        for byte in data {
+            current |= UInt64(byte & 0x7F) << shift
+            if byte & 0x80 == 0 {
+                values.append(Int64(bitPattern: current))
+                current = 0
+                shift = 0
+            } else {
+                shift += 7
+                if shift > 63 { return values }
+            }
+        }
+        return values
     }
 
     private static func source(_ data: Data) throws -> (id: Int64, name: String) {
@@ -237,6 +285,31 @@ enum MihonBackupImporter {
         var missing: Set<String> = []
         var items: [BackupImportItem] = []
 
+        // The backup's categories, created here on first use and matched by name,
+        // so re-importing never duplicates them.
+        let categoryNames = Dictionary(
+            backup.categories.map { ($0.order, $0.name) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        var categoryIds: [Int64: String] = [:]
+        func resolveCategories(_ orders: [Int64]) -> [String]? {
+            var resolved: [String] = []
+            for order in orders {
+                let id: String?
+                if let known = categoryIds[order] {
+                    id = known
+                } else if let name = categoryNames[order],
+                          let category = library.addCategory(named: name) {
+                    categoryIds[order] = category.id
+                    id = category.id
+                } else {
+                    id = nil
+                }
+                if let id, !resolved.contains(id) { resolved.append(id) }
+            }
+            return resolved.isEmpty ? nil : resolved
+        }
+
         // Mihon's on-device "local source" is sourceId 0: its files live on the Android
         // device, so importing those entries here would only produce dead series.
         for manga in backup.mangas where manga.favorite && manga.source != 0 {
@@ -290,7 +363,12 @@ enum MihonBackupImporter {
                 : Date()
             items.append(
                 BackupImportItem(
-                    entry: LibraryEntry(manga: item, chapters: chapters, addedAt: addedAt),
+                    entry: LibraryEntry(
+                        manga: item,
+                        chapters: chapters,
+                        addedAt: addedAt,
+                        categories: resolveCategories(manga.categoryOrders)
+                    ),
                     progress: progress
                 )
             )
