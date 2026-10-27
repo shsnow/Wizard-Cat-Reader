@@ -215,7 +215,7 @@ struct MangaDetailView: View {
                 }
             }
         }
-        .refreshable { await refresh() }
+        .refreshable { await refresh(manual: true) }
         .searchable(
             text: $chapterQuery,
             placement: .navigationBarDrawer(displayMode: .automatic),
@@ -798,7 +798,9 @@ struct MangaDetailView: View {
         reader = ReaderContext(manga: manga, installed: installed, chapters: ordered, startIndex: index)
     }
 
-    private func refresh() async {
+    /// `manual` is the user's pull-to-refresh: it also downloads the cover again, for
+    /// sources that replace the image behind the same address.
+    private func refresh(manual: Bool = false) async {
         if manga.isLocal {
             let loaded = LocalStore.chapters(for: manga)
             chapters = loaded
@@ -833,6 +835,10 @@ struct MangaDetailView: View {
             if result.chapters != chapters { chapters = result.chapters }
             error = nil
             library.refresh(fresh, chapters: result.chapters)
+            if manual {
+                // Detached from the pull: the spinner waits for the chapters, not the cover.
+                Task { await ImagePipeline.shared.refreshCover(for: fresh, installed: installed) }
+            }
             if siteURL == nil {
                 // From the source's CURRENT slug: a rotated old one would 404 in Safari.
                 siteURL = try? await JVMEngine.shared.siteURL(of: result.manga, installed: installed)

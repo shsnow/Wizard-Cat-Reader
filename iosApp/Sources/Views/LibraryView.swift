@@ -5,6 +5,7 @@ struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var extensions: ExtensionManager
+    @EnvironmentObject private var updater: LibraryUpdater
     @State private var reader: ReaderContext?
     @State private var query = ""
     @State private var selectedCategory: String?
@@ -71,6 +72,9 @@ struct LibraryView: View {
                     if !library.categories.isEmpty {
                         categoryChips
                     }
+                    if updater.isRefreshing {
+                        updateBanner
+                    }
                     if items.isEmpty {
                         EmptyStateView(
                             symbol: query.isEmpty ? "tray" : "magnifyingglass",
@@ -100,6 +104,9 @@ struct LibraryView: View {
                         ) {
                             EmptyView()
                         }
+                        // Pull down: updates the category on screen, or everything under "Todas".
+                        // It runs in the background (banner above), so the spinner lets go at once.
+                        .refreshable { updateVisibleSeries() }
                     }
                 }
                 .searchable(text: $query, prompt: "Buscar en la biblioteca")
@@ -322,6 +329,35 @@ struct LibraryView: View {
             return "Cap. \(String(format: "%g", number))"
         }
         return target.name
+    }
+
+    /// Updates the series of the selected category, or the whole library under "Todas".
+    private func updateVisibleSeries() {
+        let ids: Set<String>?
+        if let selectedCategory {
+            ids = Set(
+                library.entries.values
+                    .filter { $0.categories?.contains(selectedCategory) == true }
+                    .map(\.manga.id)
+            )
+        } else {
+            ids = nil
+        }
+        updater.refreshAll(library: library, extensions: extensions, only: ids)
+    }
+
+    private var updateBanner: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+            Text("Actualizando \(min(updater.completed + 1, updater.total)) de \(updater.total)…")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Detener") { updater.cancel() }
+                .font(.footnote.weight(.semibold))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
     }
 
     private var categoryChips: some View {

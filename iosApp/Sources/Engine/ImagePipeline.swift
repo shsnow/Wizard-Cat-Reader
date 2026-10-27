@@ -99,10 +99,16 @@ actor ImagePipeline {
 
     /// Covers are background work on the engine: the grid must never hold up the WebView,
     /// a search or the reader.
-    private func fetchCover(_ address: String, sourceId: Int64, installed: InstalledExtension) async throws -> Data {
+    private func fetchCover(
+        _ address: String,
+        sourceId: Int64,
+        installed: InstalledExtension,
+        bypassCache: Bool = false
+    ) async throws -> Data {
         guard let url = URL(string: address) else { throw URLError(.badURL) }
         do {
             var request = URLRequest(url: url)
+            if bypassCache { request.cachePolicy = .reloadIgnoringLocalCacheData }
             for (name, value) in try await headersForCovers(sourceId: sourceId, sample: address, installed: installed) {
                 request.setValue(value, forHTTPHeaderField: name)
             }
@@ -137,6 +143,30 @@ actor ImagePipeline {
         let headers = request.allHTTPHeaderFields ?? [:]
         coverHeaders[sourceId] = (headers, Date().addingTimeInterval(Self.headerLifetime))
         return headers
+    }
+
+    /// Downloads a series' cover again even though a copy is saved: covers are otherwise
+    /// kept until their address changes, and some sources replace the image behind the same
+    /// address. The saved copy is only replaced once the new one arrived, so a refresh while
+    /// offline never loses it.
+    func refreshCover(for manga: MangaItem, installed: InstalledExtension) async {
+        guard !manga.isLocal, let address = manga.thumbnailURL, !address.isEmpty else { return }
+        guard
+            let data = try? await fetchCover(
+                address, sourceId: manga.sourceId, installed: installed, bypassCache: true
+            ),
+            Self.isImage(data)
+        else { return }
+        let file = coverDirectory.appendingPathComponent(Self.hash(address))
+        if let saved = try? Data(contentsOf: file), saved == data { return }
+        try? data.write(to: file, options: .atomic)
+        memory.removeObject(forKey: "cover|\(address)" as NSString)
+        let mangaId = manga.id
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: .coverChanged, object: nil, userInfo: ["mangaId": mangaId]
+            )
+        }
     }
 
     /// Cookies or agent of the source changed (WebView, cleared cookies): every cached
@@ -474,4 +504,9 @@ struct ImageHTTPError: LocalizedError {
             status
         )
     }
+}
+
+extension Notification.Name {
+    /// Posted on the main thread with `userInfo["mangaId"]` when a saved cover was replaced.
+    static let coverChanged = Notification.Name("cl.jonas.wizardcat.coverChanged")
 }

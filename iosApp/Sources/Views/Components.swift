@@ -10,6 +10,8 @@ struct CoverImage: View {
     @State private var failed = false
     /// Bumped to retry a failed cover after its source's cookies change (WebView).
     @State private var retry = 0
+    /// A reload that should keep showing the current cover until the new one is ready.
+    @State private var keepImage = false
 
     var body: some View {
         Rectangle()
@@ -33,8 +35,14 @@ struct CoverImage: View {
                 guard failed, note.userInfo?["sourceId"] as? Int64 == manga.sourceId else { return }
                 retry += 1
             }
+            .onReceive(NotificationCenter.default.publisher(for: .coverChanged)) { note in
+                guard note.userInfo?["mangaId"] as? String == manga.id else { return }
+                keepImage = true
+                retry += 1
+            }
             .task(id: "\(manga.id)|\(manga.thumbnailURL ?? "")#\(library.coverVersion)#\(retry)") {
-                image = nil
+                if !keepImage { image = nil }
+                keepImage = false
                 failed = false
                 if let custom = library.customCoverURL(for: manga),
                    let data = try? Data(contentsOf: custom),

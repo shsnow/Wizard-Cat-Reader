@@ -26,19 +26,29 @@ final class LibraryUpdater: ObservableObject {
         }
     }
 
-    /// Fire-and-forget, for the toolbar button.
-    func refreshAll(library: LibraryStore, extensions: ExtensionManager) {
+    /// Fire-and-forget, for the toolbar button and the library's pull-to-refresh.
+    /// `only` limits the update to those entry ids (one category); nil updates everything.
+    func refreshAll(
+        library: LibraryStore,
+        extensions: ExtensionManager,
+        only ids: Set<String>? = nil
+    ) {
         guard !isRefreshing else { return }
         task = Task { [weak self] in
-            await self?.refresh(library: library, extensions: extensions)
+            await self?.refresh(library: library, extensions: extensions, only: ids)
             self?.task = nil
         }
     }
 
     /// Awaits until the whole update finishes, for pull-to-refresh.
-    func refresh(library: LibraryStore, extensions: ExtensionManager) async {
+    func refresh(
+        library: LibraryStore,
+        extensions: ExtensionManager,
+        only ids: Set<String>? = nil
+    ) async {
         guard !isRefreshing else { return }
-        let entries = library.sortedEntries
+        var entries = library.sortedEntries
+        if let ids { entries = entries.filter { ids.contains($0.manga.id) } }
         guard !entries.isEmpty else { return }
         isRefreshing = true
         cancelRequested = false
@@ -102,7 +112,12 @@ final class LibraryUpdater: ObservableObject {
             }
         }
         if !discovered.isEmpty {
-            lastNewURLs = discovered
+            // A category update adds its finds to the "Nuevo" labels of the last full one.
+            if ids != nil {
+                lastNewURLs.formUnion(discovered)
+            } else {
+                lastNewURLs = discovered
+            }
             UserDefaults.standard.set(Array(discovered), forKey: "updaterLastNewURLs")
         }
         isRefreshing = false
