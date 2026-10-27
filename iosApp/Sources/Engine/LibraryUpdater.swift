@@ -56,8 +56,9 @@ final class LibraryUpdater: ObservableObject {
                 continue
             }
             do {
+                // Background lane: the update must not hold up whatever is on screen.
                 let result = try await JVMEngine.shared.details(
-                    of: entry.manga, installed: installed
+                    of: entry.manga, installed: installed, priority: .background
                 )
                 // The entry's URL is its identity: a source that rotated its slug must
                 // not detach the series, its progress, or its download records.

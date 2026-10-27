@@ -8,6 +8,8 @@ struct CoverImage: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var image: UIImage?
     @State private var failed = false
+    /// Bumped to retry a failed cover after its source's cookies change (WebView).
+    @State private var retry = 0
 
     var body: some View {
         Rectangle()
@@ -26,7 +28,12 @@ struct CoverImage: View {
                 }
             }
             .clipped()
-            .task(id: "\(manga.id)|\(manga.thumbnailURL ?? "")#\(library.coverVersion)") {
+            .onReceive(NotificationCenter.default.publisher(for: .sourceCookiesChanged)) { note in
+                // Only failed covers of that source: loaded ones stay put, no flicker.
+                guard failed, note.userInfo?["sourceId"] as? Int64 == manga.sourceId else { return }
+                retry += 1
+            }
+            .task(id: "\(manga.id)|\(manga.thumbnailURL ?? "")#\(library.coverVersion)#\(retry)") {
                 image = nil
                 failed = false
                 if let custom = library.customCoverURL(for: manga),

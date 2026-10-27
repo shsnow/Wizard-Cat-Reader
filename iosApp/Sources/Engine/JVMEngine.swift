@@ -62,21 +62,57 @@ struct SourceFilter: Decodable, Hashable, Identifiable {
     let group: String?
 }
 
+/// How urgently a Java call is needed. The engine is serial, so order is everything: a
+/// screen the user is waiting on (the WebView, a series page, a search) must not queue
+/// behind forty grid covers or a whole library update.
+enum JVMPriority: Int {
+    /// Covers, library updates, downloads. Dropped from the queue if their task is cancelled.
+    case background = 0
+    /// Reader page images. Dropped from the queue if their task is cancelled.
+    case normal = 1
+    /// Something on screen is waiting for it. Always runs.
+    case interactive = 2
+}
+
+/// Set from a task's cancellation handler, read on the JVM thread.
+private final class JVMCancelFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+
+    var isCancelled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cancelled
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        lock.unlock()
+    }
+}
+
 /// One long-lived worker thread for every Java call. A GCD queue would not do: its worker
 /// threads come and go, and a thread that dies while attached to the VM leaks a JavaThread.
 /// A single persistent thread also gives the Android-compat layer a stable thread identity.
+///
+/// One FIFO per priority; the worker always takes the oldest job of the highest non-empty one.
 private final class JVMWorkThread {
     private let condition = NSCondition()
-    private var jobs: [() -> Void] = []
+    private var lanes: [[() -> Void]] = [[], [], []]
 
     init() {
         let thread = Thread { [self] in
             while true {
                 condition.lock()
-                while jobs.isEmpty {
+                while lanes.allSatisfy(\.isEmpty) {
                     condition.wait()
                 }
-                let job = jobs.removeFirst()
+                guard let lane = lanes.indices.reversed().first(where: { !lanes[$0].isEmpty }) else {
+                    condition.unlock()
+                    continue
+                }
+                let job = lanes[lane].removeFirst()
                 condition.unlock()
                 job()
             }
@@ -88,9 +124,9 @@ private final class JVMWorkThread {
         thread.start()
     }
 
-    func async(_ job: @escaping () -> Void) {
+    func async(priority: JVMPriority = .interactive, _ job: @escaping () -> Void) {
         condition.lock()
-        jobs.append(job)
+        lanes[priority.rawValue].append(job)
         condition.signal()
         condition.unlock()
     }
@@ -161,36 +197,53 @@ final class JVMEngine: @unchecked Sendable {
         return try await task.value
     }
 
-    private func onQueue<T>(_ work: @escaping (JVMRuntime) throws -> T) async throws -> T {
+    private func onQueue<T>(
+        priority: JVMPriority = .interactive,
+        _ work: @escaping (JVMRuntime) throws -> T
+    ) async throws -> T {
         let runtime = try await start()
-        return try await run(on: runtime, work)
+        return try await run(on: runtime, priority: priority, work)
     }
 
     private func run<T>(
         on runtime: JVMRuntime,
+        priority: JVMPriority = .interactive,
         _ work: @escaping (JVMRuntime) throws -> T
     ) async throws -> T {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async {
-                do {
-                    continuation.resume(returning: try work(runtime))
-                } catch let error as EngineError {
-                    continuation.resume(throwing: error)
-                } catch {
-                    // The JVM bridge throws raw Java messages ("java.io.IOException:
-                    // Cloudflare bypass…"); route them through the same readable
-                    // mapping the host responses get.
-                    continuation.resume(throwing: EngineError.host(error.localizedDescription))
+        let flag = JVMCancelFlag()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                queue.async(priority: priority) {
+                    // A cover that scrolled away or a download the user cancelled is not worth
+                    // a network round trip on the only engine thread. Interactive calls always
+                    // run: their screens already handle a late answer.
+                    if priority != .interactive, flag.isCancelled {
+                        continuation.resume(throwing: CancellationError())
+                        return
+                    }
+                    do {
+                        continuation.resume(returning: try work(runtime))
+                    } catch let error as EngineError {
+                        continuation.resume(throwing: error)
+                    } catch {
+                        // The JVM bridge throws raw Java messages ("java.io.IOException:
+                        // Cloudflare bypass…"); route them through the same readable
+                        // mapping the host responses get.
+                        continuation.resume(throwing: EngineError.host(error.localizedDescription))
+                    }
                 }
             }
+        } onCancel: {
+            flag.cancel()
         }
     }
 
     private func onQueue<T>(
         loading installed: InstalledExtension,
+        priority: JVMPriority = .interactive,
         _ work: @escaping (JVMRuntime) throws -> T
     ) async throws -> T {
-        try await onQueue { runtime in
+        try await onQueue(priority: priority) { runtime in
             try self.ensureLoaded(installed, in: runtime)
             return try work(runtime)
         }
@@ -336,9 +389,10 @@ final class JVMEngine: @unchecked Sendable {
 
     func details(
         of manga: MangaItem,
-        installed: InstalledExtension
+        installed: InstalledExtension,
+        priority: JVMPriority = .interactive
     ) async throws -> (manga: MangaItem, chapters: [ChapterItem]) {
-        try await onQueue(loading: installed) { runtime in
+        try await onQueue(loading: installed, priority: priority) { runtime in
             let update = try runtime.mangaUpdate(
                 extensionId: installed.id,
                 sourceId: manga.sourceId,
@@ -373,9 +427,10 @@ final class JVMEngine: @unchecked Sendable {
     func pages(
         of chapter: ChapterItem,
         manga: MangaItem,
-        installed: InstalledExtension
+        installed: InstalledExtension,
+        priority: JVMPriority = .interactive
     ) async throws -> [PageItem] {
-        try await onQueue(loading: installed) { runtime in
+        try await onQueue(loading: installed, priority: priority) { runtime in
             try runtime.pages(
                 extensionId: installed.id,
                 sourceId: manga.sourceId,
@@ -447,6 +502,7 @@ final class JVMEngine: @unchecked Sendable {
                 )
             )
         }
+        await sourceCookiesChanged(sourceId)
     }
 
     /// Clears the cookie jar of one source (sign-ins, Cloudflare clearances).
@@ -460,6 +516,18 @@ final class JVMEngine: @unchecked Sendable {
                         sourceId: String(source.id)
                     )
                 )
+            )
+        }
+        await sourceCookiesChanged(source.id)
+    }
+
+    /// Image headers carry the source's cookies and agent: the cached copies are stale now,
+    /// and covers that failed on a Cloudflare challenge are worth retrying.
+    private func sourceCookiesChanged(_ sourceId: Int64) async {
+        await ImagePipeline.shared.invalidate(sourceId: sourceId)
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: .sourceCookiesChanged, object: nil, userInfo: ["sourceId": sourceId]
             )
         }
     }
@@ -493,9 +561,12 @@ final class JVMEngine: @unchecked Sendable {
         imageURL: String,
         pageURL: String?,
         sourceId: Int64,
-        installed: InstalledExtension
+        installed: InstalledExtension,
+        priority: JVMPriority = .interactive
     ) async throws -> URLRequest {
-        let descriptor = try await onQueue(loading: installed) { runtime -> ImageRequestDescriptor in
+        let descriptor = try await onQueue(
+            loading: installed, priority: priority
+        ) { runtime -> ImageRequestDescriptor in
             let response = try Self.checked(
                 runtime.dispatch(
                     ExtensionHostRequest(
@@ -528,7 +599,8 @@ final class JVMEngine: @unchecked Sendable {
         imageURL: String,
         pageURL: String?,
         sourceId: Int64,
-        installed: InstalledExtension
+        installed: InstalledExtension,
+        priority: JVMPriority = .interactive
     ) async throws -> Data {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("MokaImages", isDirectory: true)
@@ -536,7 +608,9 @@ final class JVMEngine: @unchecked Sendable {
         let destination = directory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: destination) }
 
-        _ = try await onQueue(loading: installed) { runtime -> ExtensionHostResponse in
+        _ = try await onQueue(
+            loading: installed, priority: priority
+        ) { runtime -> ExtensionHostResponse in
             try Self.checked(
                 runtime.dispatch(
                     ExtensionHostRequest(
@@ -570,6 +644,11 @@ final class JVMEngine: @unchecked Sendable {
             status: value.status
         )
     }
+}
+
+extension Notification.Name {
+    /// Posted on the main thread with `userInfo["sourceId"]` after a source's cookies change.
+    static let sourceCookiesChanged = Notification.Name("cl.jonas.wizardcat.sourceCookiesChanged")
 }
 
 /// The JVM compatibility layer calls this to drive a WKWebView (Cloudflare challenges, sites

@@ -116,7 +116,11 @@ struct RootView: View {
             switch phase {
                 case .active:
                     Task { await SyncManager.shared.sync(library: library, extensions: extensions) }
+                case .inactive:
+                    // Pending JSON writes go out before iOS can suspend or kill the app.
+                    Storage.flush()
                 case .background:
+                    Storage.flush()
                     Task {
                         await SyncManager.shared.sync(
                             library: library, extensions: extensions, exportOnly: true
@@ -125,6 +129,11 @@ struct RootView: View {
                 default:
                     break
             }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification)
+        ) { _ in
+            Storage.flush()
         }
         .alert(
             "Algo salió mal",

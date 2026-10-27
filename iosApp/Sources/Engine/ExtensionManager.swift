@@ -28,7 +28,7 @@ final class ExtensionManager: ObservableObject {
         }
         if installed.contains(where: \.nsfw) {
             installed.removeAll(where: \.nsfw)
-            Storage.save(installed, to: Self.installedFile)
+            Storage.saveNow(installed, to: Self.installedFile)
         }
     }
 
@@ -185,7 +185,7 @@ final class ExtensionManager: ObservableObject {
             installed.removeAll { $0.id == item.packageName }
             installed.append(record)
             installed.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-            Storage.save(installed, to: Self.installedFile)
+            Storage.saveNow(installed, to: Self.installedFile)
 
             if let previous, previous.jarFileName != fileName {
                 try? FileManager.default.removeItem(at: previous.jarURL)
@@ -198,7 +198,7 @@ final class ExtensionManager: ObservableObject {
 
     func uninstall(_ record: InstalledExtension) {
         installed.removeAll { $0.id == record.id }
-        Storage.save(installed, to: Self.installedFile)
+        Storage.saveNow(installed, to: Self.installedFile)
         JVMEngine.shared.forget(extensionId: record.id)
         try? FileManager.default.removeItem(at: record.jarURL)
     }

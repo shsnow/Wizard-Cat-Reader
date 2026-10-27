@@ -32,6 +32,25 @@ actor ImagePipeline {
     /// Cover headers are the source's plain headers, the same for every cover of that source.
     private var coverHeaders: [Int64: (headers: [String: String], expires: Date)] = [:]
 
+    /// Sources whose covers just hit a Cloudflare challenge, until when.
+    private var coverChallenged: [Int64: Date] = [:]
+
+    /// What is known about a source's page headers, per source + image host.
+    private enum PageHeaderState {
+        /// One page answered with these headers and an untouched URL; a second page decides.
+        case probing(headers: [String: String], firstURL: String, expires: Date)
+        /// Two pages agreed: later pages reuse these headers without asking the engine.
+        case cached(headers: [String: String], expires: Date)
+        /// The source rewrites URLs or varies headers per page: always ask the engine.
+        case dynamic(until: Date)
+    }
+
+    /// Reader pages used to cost one round trip through the serial engine each, just for
+    /// the headers: queued behind a library update, the reader froze. Most sources answer
+    /// every page with the same headers, so once two pages agree they are reused.
+    private var pageHeaders: [String: PageHeaderState] = [:]
+    private static let headerLifetime: TimeInterval = 600
+
     /// One load per page at a time, so the reader and the prefetcher never fetch the same page
     /// twice through the (serial) extension engine.
     private var inFlight: [String: Task<UIImage, Error>] = [:]
@@ -78,6 +97,8 @@ actor ImagePipeline {
         return image
     }
 
+    /// Covers are background work on the engine: the grid must never hold up the WebView,
+    /// a search or the reader.
     private func fetchCover(_ address: String, sourceId: Int64, installed: InstalledExtension) async throws -> Data {
         guard let url = URL(string: address) else { throw URLError(.badURL) }
         do {
@@ -87,24 +108,46 @@ actor ImagePipeline {
             }
             let data = try await download(request)
             if Self.isImage(data) { return data }
-        } catch is CancellationError {
-            throw CancellationError()
+        } catch let error where Self.isCancellation(error) {
+            throw error
+        } catch let error as ImageHTTPError where error.isCloudflareChallenge {
+            // The extension's client would hit the same wall, one cover at a time on the
+            // serial engine — a grid of forty covers kept the WebView waiting a minute.
+            // Fail fast; the covers retry once the WebView clears the challenge.
+            coverChallenged[sourceId] = Date().addingTimeInterval(120)
+            throw error
         } catch {
             // Fall through to the extension's own client.
         }
+        if let until = coverChallenged[sourceId], until > Date() {
+            throw ImageHTTPError(status: 403, isCloudflareChallenge: true)
+        }
         return try await JVMEngine.shared.materializeImage(
-            imageURL: address, pageURL: nil, sourceId: sourceId, installed: installed
+            imageURL: address, pageURL: nil, sourceId: sourceId, installed: installed,
+            priority: .background
         )
     }
 
     private func headersForCovers(sourceId: Int64, sample: String, installed: InstalledExtension) async throws -> [String: String] {
         if let cached = coverHeaders[sourceId], cached.expires > Date() { return cached.headers }
         let request = try await JVMEngine.shared.imageRequest(
-            imageURL: sample, pageURL: nil, sourceId: sourceId, installed: installed
+            imageURL: sample, pageURL: nil, sourceId: sourceId, installed: installed,
+            priority: .background
         )
         let headers = request.allHTTPHeaderFields ?? [:]
-        coverHeaders[sourceId] = (headers, Date().addingTimeInterval(600))
+        coverHeaders[sourceId] = (headers, Date().addingTimeInterval(Self.headerLifetime))
         return headers
+    }
+
+    /// Cookies or agent of the source changed (WebView, cleared cookies): every cached
+    /// header set of it is stale.
+    func invalidate(sourceId: Int64) {
+        coverHeaders[sourceId] = nil
+        coverChallenged[sourceId] = nil
+        let prefix = "\(sourceId)|"
+        for key in pageHeaders.keys where key.hasPrefix(prefix) {
+            pageHeaders[key] = nil
+        }
     }
 
     // MARK: - Pages
@@ -143,27 +186,94 @@ actor ImagePipeline {
         }
     }
 
-    /// The raw image bytes, used by the reader and by downloads.
-    func pageData(_ page: PageItem, sourceId: Int64, installed: InstalledExtension) async throws -> Data {
+    /// The raw image bytes, used by the reader (`.normal`) and by downloads (`.background`).
+    func pageData(
+        _ page: PageItem,
+        sourceId: Int64,
+        installed: InstalledExtension,
+        priority: JVMPriority = .normal
+    ) async throws -> Data {
         if let localURL = page.localURL {
             return try Data(contentsOf: localURL)
         }
         guard let imageURL = page.imageURL, !imageURL.isEmpty else { throw URLError(.badURL) }
         let pageURL = page.url.isEmpty ? imageURL : page.url
+        let headerKey = Self.pageHeaderKey(sourceId: sourceId, imageURL: imageURL)
+
+        // Fast path: headers already learned for this source and host, no engine call.
+        if let headerKey,
+           case .cached(let headers, let expires)? = pageHeaders[headerKey],
+           expires > Date(),
+           let url = URL(string: imageURL) {
+            var request = URLRequest(url: url)
+            for (name, value) in headers {
+                request.setValue(value, forHTTPHeaderField: name)
+            }
+            do {
+                let data = try await download(request)
+                if Self.isImage(data) { return data }
+            } catch let error where Self.isCancellation(error) {
+                throw error
+            } catch {
+                // Handled below.
+            }
+            // The shared headers did not work for this page: stop guessing for a while.
+            pageHeaders[headerKey] = .dynamic(until: Date().addingTimeInterval(Self.headerLifetime))
+        }
+
         do {
             let request = try await JVMEngine.shared.imageRequest(
-                imageURL: imageURL, pageURL: pageURL, sourceId: sourceId, installed: installed
+                imageURL: imageURL, pageURL: pageURL, sourceId: sourceId, installed: installed,
+                priority: priority
             )
+            if let headerKey { learnPageHeaders(request, requested: imageURL, key: headerKey) }
             let downloaded = try await download(request)
             if Self.isImage(downloaded) { return downloaded }
-        } catch is CancellationError {
-            throw CancellationError()
+        } catch let error where Self.isCancellation(error) {
+            throw error
         } catch {
             // Fall through to the extension's own client.
         }
         return try await JVMEngine.shared.materializeImage(
-            imageURL: imageURL, pageURL: pageURL, sourceId: sourceId, installed: installed
+            imageURL: imageURL, pageURL: pageURL, sourceId: sourceId, installed: installed,
+            priority: priority
         )
+    }
+
+    private static func pageHeaderKey(sourceId: Int64, imageURL: String) -> String? {
+        guard let host = URL(string: imageURL)?.host else { return nil }
+        return "\(sourceId)|\(host)"
+    }
+
+    /// Two different pages answering with the same headers and their URL untouched means
+    /// the source's headers are static: cache them. Anything else marks the host dynamic.
+    private func learnPageHeaders(_ request: URLRequest, requested imageURL: String, key: String) {
+        let now = Date()
+        let headers = request.allHTTPHeaderFields ?? [:]
+        let normalized = URL(string: imageURL)?.absoluteString ?? imageURL
+        guard request.url?.absoluteString == normalized else {
+            pageHeaders[key] = .dynamic(until: now.addingTimeInterval(Self.headerLifetime))
+            return
+        }
+        switch pageHeaders[key] {
+            case .dynamic(let until)? where until > now:
+                return
+            case .cached(_, let expires)? where expires > now:
+                return
+            case .probing(let first, let firstURL, let expires)? where expires > now:
+                if firstURL == imageURL { return }
+                pageHeaders[key] = first == headers
+                    ? PageHeaderState.cached(
+                        headers: headers, expires: now.addingTimeInterval(Self.headerLifetime)
+                    )
+                    : PageHeaderState.dynamic(until: now.addingTimeInterval(Self.headerLifetime))
+            default:
+                pageHeaders[key] = .probing(
+                    headers: headers,
+                    firstURL: imageURL,
+                    expires: now.addingTimeInterval(Self.headerLifetime)
+                )
+        }
     }
 
     // MARK: - Maintenance
@@ -185,6 +295,8 @@ actor ImagePipeline {
         session.configuration.urlCache?.removeAllCachedResponses()
         try? FileManager.default.removeItem(at: coverDirectory)
         coverHeaders.removeAll()
+        coverChallenged.removeAll()
+        pageHeaders.removeAll()
     }
 
     // MARK: - Helpers
@@ -192,9 +304,13 @@ actor ImagePipeline {
     private func download(_ request: URLRequest) async throws -> Data {
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-            throw URLError(.badServerResponse)
+            throw ImageHTTPError(response: http)
         }
         return data
+    }
+
+    private static func isCancellation(_ error: Error) -> Bool {
+        error is CancellationError || (error as? URLError)?.code == .cancelled
     }
 
     private func store(_ image: UIImage, for key: NSString) {
@@ -327,5 +443,35 @@ actor ImagePipeline {
             return UIImage(data: data)
         }
         return UIImage(cgImage: image)
+    }
+}
+
+/// A non-2xx answer to an image request.
+struct ImageHTTPError: LocalizedError {
+    let status: Int
+    /// Cloudflare answered with a challenge page instead of the image.
+    let isCloudflareChallenge: Bool
+
+    init(status: Int, isCloudflareChallenge: Bool) {
+        self.status = status
+        self.isCloudflareChallenge = isCloudflareChallenge
+    }
+
+    init(response: HTTPURLResponse) {
+        status = response.statusCode
+        let mitigated = (response.value(forHTTPHeaderField: "cf-mitigated") ?? "").lowercased()
+        let server = (response.value(forHTTPHeaderField: "Server") ?? "").lowercased()
+        isCloudflareChallenge = mitigated == "challenge"
+            || ((status == 403 || status == 503) && server.contains("cloudflare"))
+    }
+
+    var errorDescription: String? {
+        if isCloudflareChallenge {
+            return EngineError.readable("cloudflare")
+        }
+        return String(
+            format: NSLocalizedString("El servidor respondió con el error %d.", comment: ""),
+            status
+        )
     }
 }

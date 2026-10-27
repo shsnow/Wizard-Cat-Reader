@@ -207,7 +207,7 @@ final class DownloadManager: ObservableObject {
 
     private func download(_ job: DownloadJob) async throws {
         let pages = try await JVMEngine.shared.pages(
-            of: job.chapter, manga: job.manga, installed: job.installed
+            of: job.chapter, manga: job.manga, installed: job.installed, priority: .background
         )
         guard !pages.isEmpty else { throw EngineError.host("El capítulo no tiene páginas.") }
 
@@ -231,7 +231,8 @@ final class DownloadManager: ObservableObject {
                         let position = start + offset
                         group.addTask {
                             let data = try await ImagePipeline.shared.pageData(
-                                page, sourceId: job.manga.sourceId, installed: job.installed
+                                page, sourceId: job.manga.sourceId, installed: job.installed,
+                                priority: .background
                             )
                             return (position, data)
                         }
