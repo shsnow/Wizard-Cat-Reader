@@ -59,8 +59,21 @@ final class LibraryUpdater: ObservableObject {
                 let result = try await JVMEngine.shared.details(
                     of: entry.manga, installed: installed
                 )
+                // The entry's URL is its identity: a source that rotated its slug must
+                // not detach the series, its progress, or its download records.
+                var freshManga = result.manga
+                freshManga.url = entry.manga.url
                 let known = Set(entry.chapters.map(\.url))
-                let fresh = result.chapters.filter { !known.contains($0.url) }
+                // A rotated URL is not a new chapter: a known chapter number keeps it
+                // out of the badge and of the automatic download.
+                let knownNumbers = Set(entry.chapters.compactMap(\.number).filter { $0 >= 0 })
+                let fresh = result.chapters.filter { chapter in
+                    guard !known.contains(chapter.url) else { return false }
+                    if let number = chapter.number, number >= 0 {
+                        return !knownNumbers.contains(number)
+                    }
+                    return true
+                }
                 newChapters += fresh.count
                 discovered.formUnion(fresh.map(\.url))
                 // Optional auto-download, oldest first so the queue follows reading order.
@@ -77,11 +90,11 @@ final class LibraryUpdater: ObservableObject {
                     let wanted = fresh.filter { visible.contains($0.url) }
                     if !wanted.isEmpty {
                         DownloadManager.shared.enqueue(
-                            Array(wanted.reversed()), manga: result.manga, installed: installed
+                            Array(wanted.reversed()), manga: freshManga, installed: installed
                         )
                     }
                 }
-                library.refresh(result.manga, chapters: result.chapters)
+                library.refresh(freshManga, chapters: result.chapters)
             } catch {
                 // A source that is down should not stop the rest of the update.
                 continue

@@ -1,0 +1,3 @@
+/* System permission prompts, English. The Spanish text lives in project.yml. */
+"NSPhotoLibraryAddUsageDescription" = "Wizard Cat Reader saves the pages you choose to your photo library.";
+"NSLocalNetworkUsageDescription" = "Wizard Cat Reader connects to your own manga servers, like Komga, on your local network.";

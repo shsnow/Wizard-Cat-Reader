@@ -822,12 +822,20 @@ struct MangaDetailView: View {
         defer { isLoading = false }
         do {
             let result = try await JVMEngine.shared.details(of: manga, installed: installed)
-            manga = result.manga
-            chapters = result.chapters
+            // The URL is the identity that progress, categories and the library key hang
+            // off. A source that rotates its slugs (Asura does) must not detach them —
+            // and the old URL keeps working: it is the one this request just used.
+            var fresh = result.manga
+            fresh.url = manga.url
+            // Assign only on change: replacing equal values rebuilds the whole List and
+            // reloads the cover, which reads as the screen loading twice.
+            if fresh != manga { manga = fresh }
+            if result.chapters != chapters { chapters = result.chapters }
             error = nil
-            library.refresh(result.manga, chapters: result.chapters)
+            library.refresh(fresh, chapters: result.chapters)
             if siteURL == nil {
-                siteURL = try? await JVMEngine.shared.siteURL(of: manga, installed: installed)
+                // From the source's CURRENT slug: a rotated old one would 404 in Safari.
+                siteURL = try? await JVMEngine.shared.siteURL(of: result.manga, installed: installed)
             }
         } catch {
             // Offline with a saved copy: keep showing it instead of an error.

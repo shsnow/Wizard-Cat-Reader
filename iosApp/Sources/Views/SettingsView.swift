@@ -165,6 +165,9 @@ struct ReaderSettingsView: View {
                 Picker("Fondo del lector", selection: $settings.readerBackground) {
                     ForEach(ReaderBackground.allCases) { Text($0.title).tag($0) }
                 }
+                Picker("Escala de página", selection: $settings.pagedScaleMode) {
+                    ForEach(PageScaleMode.allCases) { Text($0.title).tag($0) }
+                }
                 Picker("Margen lateral en webtoon", selection: $settings.webtoonPadding) {
                     Text("Sin margen").tag(0.0)
                     Text("Pequeño").tag(0.04)
@@ -173,7 +176,15 @@ struct ReaderSettingsView: View {
             } header: {
                 Text("Página")
             } footer: {
-                Text("Manhwa, manhua y webtoons se abren en modo vertical. Puedes cambiar el modo de cada serie desde su ficha o dentro del lector.")
+                Text("Manhwa, manhua y webtoons se abren en modo vertical. Puedes cambiar el modo de cada serie desde su ficha o dentro del lector. La escala se aplica al modo paginado.")
+            }
+
+            Section {
+                Toggle("Saltar capítulos leídos", isOn: $settings.skipReadChapters)
+            } header: {
+                Text("Capítulos")
+            } footer: {
+                Text("Al pasar de capítulo, el lector salta los que ya marcaste como leídos.")
             }
 
             Section {

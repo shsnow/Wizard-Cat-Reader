@@ -86,6 +86,8 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         NSLocalNetworkUsageDescription: Wizard Cat Reader se conecta a servidores de manga propios, como Komga, en tu red local.
+        # Long press on a page -> "Guardar en Fotos" (add-only access).
+        NSPhotoLibraryAddUsageDescription: Wizard Cat Reader guarda en tu fototeca las páginas que elijas.
         # So the Files picker offers .cbz archives when importing comics.
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: cl.jonas.wizardcat.cbz

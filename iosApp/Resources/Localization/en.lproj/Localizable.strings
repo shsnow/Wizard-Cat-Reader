@@ -269,7 +269,7 @@
 "Terracota" = "Terracotta";
 "Ícono de la app" = "App icon";
 "El idioma se aplica al volver a abrir la app." = "The language applies the next time you open the app.";
-"Manhwa, manhua y webtoons se abren en modo vertical. Puedes cambiar el modo de cada serie desde su ficha o dentro del lector." = "Manhwa, manhua and webtoons open in vertical mode. You can change each series' mode from its page or inside the reader.";
+"Manhwa, manhua y webtoons se abren en modo vertical. Puedes cambiar el modo de cada serie desde su ficha o dentro del lector. La escala se aplica al modo paginado." = "Manhwa, manhua and webtoons open in vertical mode. You can change each series' mode from its page or inside the reader. The scale applies to paged mode.";
 "Sitio de soporte" = "Support site";
 "Política de privacidad" = "Privacy policy";
 "Restaurar el cómic de guía" = "Restore the guide comic";
@@ -363,3 +363,20 @@
 "No se pudieron cargar" = "Could not load";
 "No se puede abrir" = "Cannot open";
 "La extensión devolvió una imagen vacía." = "The extension returned an empty image.";
+
+/* Reader: page actions, skip read, scale */
+"Compartir página" = "Share page";
+"Guardar en Fotos" = "Save to Photos";
+"Usar como portada" = "Use as cover";
+"Página guardada en Fotos." = "Page saved to Photos.";
+"No se pudo guardar: %@" = "Could not save: %@";
+"Permite el acceso a Fotos en los Ajustes del sistema para guardar páginas." = "Allow Photos access in the system Settings to save pages.";
+"Portada actualizada." = "Cover updated.";
+"Saltar capítulos leídos" = "Skip read chapters";
+"Escala de página" = "Page scale";
+"Ajustar a pantalla" = "Fit screen";
+"Ajustar al ancho" = "Fit width";
+"Ajustar a la altura" = "Fit height";
+"Tamaño original" = "Original size";
+"Capítulos" = "Chapters";
+"Al pasar de capítulo, el lector salta los que ya marcaste como leídos." = "When moving between chapters, the reader skips the ones you already marked as read.";

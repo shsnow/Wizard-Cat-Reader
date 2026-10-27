@@ -74,6 +74,22 @@ enum DoublePageMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// How a page fills the screen in paged mode, before any zoom.
+enum PageScaleMode: String, CaseIterable, Identifiable {
+    case fit, fitWidth, fitHeight, original
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+            case .fit: return NSLocalizedString("Ajustar a pantalla", comment: "")
+            case .fitWidth: return NSLocalizedString("Ajustar al ancho", comment: "")
+            case .fitHeight: return NSLocalizedString("Ajustar a la altura", comment: "")
+            case .original: return NSLocalizedString("Tamaño original", comment: "")
+        }
+    }
+}
+
 enum LibrarySort: String, CaseIterable, Identifiable {
     case recent, title, unread
 
@@ -201,6 +217,16 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(trimPageBorders, forKey: "trimPageBorders") }
     }
 
+    /// How pages fill the screen in the paged reader.
+    @Published var pagedScaleMode: PageScaleMode {
+        didSet { defaults.set(pagedScaleMode.rawValue, forKey: "pagedScaleMode") }
+    }
+
+    /// Jump over chapters already marked read when moving between chapters.
+    @Published var skipReadChapters: Bool {
+        didSet { defaults.set(skipReadChapters, forKey: "skipReadChapters") }
+    }
+
     private init() {
         // A local, so nothing reads `self` before every stored property is initialized.
         let defaults = UserDefaults.standard
@@ -235,6 +261,9 @@ final class AppSettings: ObservableObject {
         doublePageMode = DoublePageMode(rawValue: defaults.string(forKey: "doublePageMode") ?? "")
             ?? .landscape
         trimPageBorders = defaults.bool(forKey: "trimPageBorders")
+        pagedScaleMode = PageScaleMode(rawValue: defaults.string(forKey: "pagedScaleMode") ?? "")
+            ?? .fit
+        skipReadChapters = defaults.bool(forKey: "skipReadChapters")
     }
 
     func shows(language: String) -> Bool {

@@ -101,9 +101,65 @@ final class LibraryStore: ObservableObject {
     func refresh(_ manga: MangaItem, chapters: [ChapterItem]) {
         guard var entry = entries[manga.id] else { return }
         entry.manga = manga
-        if !chapters.isEmpty { entry.chapters = chapters }
+        if !chapters.isEmpty {
+            reconcileProgress(for: manga, from: entry.chapters, to: chapters)
+            entry.chapters = chapters
+        }
         entries[manga.id] = entry
         saveLibrary()
+    }
+
+    /// Progress is keyed by chapter URL, and some sources rotate their URLs: without
+    /// this, a refresh would silently mark everything unread. Marks whose URL vanished
+    /// migrate to the new chapter with the same number (preferring the same scanlator),
+    /// or failing that the same name — the same reconciliation Mihon performs.
+    private func reconcileProgress(
+        for manga: MangaItem,
+        from old: [ChapterItem],
+        to new: [ChapterItem]
+    ) {
+        guard var value = progress[manga.id], !old.isEmpty else { return }
+        let newUrls = Set(new.map(\.url))
+        var tracked = value.readChapters
+        tracked.formUnion(value.bookmarkedChapters ?? [])
+        if let last = value.lastReadChapter { tracked.insert(last) }
+        let lost = tracked.subtracting(newUrls)
+        guard !lost.isEmpty else { return }
+
+        let oldByUrl = Dictionary(old.map { ($0.url, $0) }, uniquingKeysWith: { a, _ in a })
+        func replacement(for chapter: ChapterItem) -> ChapterItem? {
+            if let number = chapter.number, number >= 0 {
+                let candidates = new.filter { $0.number == number }
+                if let exact = candidates.first(where: { $0.scanlator == chapter.scanlator }) {
+                    return exact
+                }
+                if let first = candidates.first { return first }
+            }
+            return new.first { $0.name == chapter.name }
+        }
+
+        var changed = false
+        for url in lost {
+            guard let oldChapter = oldByUrl[url], let target = replacement(for: oldChapter) else {
+                continue
+            }
+            if value.readChapters.remove(url) != nil {
+                value.readChapters.insert(target.url)
+                changed = true
+            }
+            if value.bookmarkedChapters?.remove(url) != nil {
+                value.bookmarkedChapters?.insert(target.url)
+                changed = true
+            }
+            if value.lastReadChapter == url {
+                value.lastReadChapter = target.url
+                changed = true
+            }
+        }
+        if changed {
+            progress[manga.id] = value
+            saveProgress()
+        }
     }
 
     func unreadCount(for entry: LibraryEntry) -> Int {

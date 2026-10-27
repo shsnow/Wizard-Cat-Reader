@@ -1,3 +1,4 @@
+import Photos
 import SwiftUI
 import UIKit
 
@@ -121,6 +122,10 @@ struct ReaderView: View {
     @StateObject private var autoScroller = AutoScroller()
     @State private var isAutoScrolling = false
 
+    /// Brief feedback after a page action (saved, cover set).
+    @State private var toast: String?
+    @State private var toastTask: Task<Void, Never>?
+
     /// Webtoon zoom: the strip is laid out wider and scrolls in both directions.
     @State private var zoom: CGFloat = 1
     @GestureState private var pinch: CGFloat = 1
@@ -146,11 +151,22 @@ struct ReaderView: View {
     }
 
     private var chapter: ChapterItem { context.chapters[chapterIndex] }
-    private var hasNext: Bool { chapterIndex + 1 < context.chapters.count }
-    private var hasPrevious: Bool { chapterIndex > 0 }
-    /// True once the strip's last loaded chapter is the series' final one.
+    private var hasNext: Bool { targetIndex(from: chapterIndex, direction: 1) != nil }
+    private var hasPrevious: Bool { targetIndex(from: chapterIndex, direction: -1) != nil }
+    /// True once the strip's last loaded chapter is the series' final one to read.
     private var stripReachedEnd: Bool {
-        (segments.last?.chapterIndex ?? chapterIndex) + 1 >= context.chapters.count
+        targetIndex(from: segments.last?.chapterIndex ?? chapterIndex, direction: 1) == nil
+    }
+
+    /// The chapter to land on when moving in `direction`, honoring "skip read chapters".
+    private func targetIndex(from index: Int, direction: Int) -> Int? {
+        var candidate = index + direction
+        while context.chapters.indices.contains(candidate) {
+            if !settings.skipReadChapters { return candidate }
+            if !library.isRead(context.chapters[candidate], in: context.manga) { return candidate }
+            candidate += direction
+        }
+        return nil
     }
 
     private var background: Color { settings.readerBackground.color }
@@ -198,6 +214,22 @@ struct ReaderView: View {
                         .padding(.bottom, 4)
                         .allowsHitTesting(false)
                 }
+
+                if let toast {
+                    Text(toast)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(isLightBackground ? Color.white : .black)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            (isLightBackground ? Color.black : Color.white).opacity(0.85),
+                            in: Capsule()
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .padding(.top, 72)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
             }
         }
         .statusBarHidden(!showOverlay)
@@ -239,7 +271,8 @@ struct ReaderView: View {
                             width: width,
                             decodeWidth: decodeWidth,
                             fitHeight: nil,
-                            onTap: nil
+                            onTap: nil,
+                            longPress: pageActions
                         )
                         .onAppear {
                             pageAppeared(segment: segment, offset: offset, decodeWidth: decodeWidth)
@@ -369,8 +402,7 @@ struct ReaderView: View {
     private func loadNextSegment() async {
         guard mode == .webtoon, !isLoadingNext, !isLoading else { return }
         guard let last = segments.last else { return }
-        let nextIndex = last.chapterIndex + 1
-        guard nextIndex < context.chapters.count else { return }
+        guard let nextIndex = targetIndex(from: last.chapterIndex, direction: 1) else { return }
         guard !segments.contains(where: { $0.chapterIndex == nextIndex }) else { return }
         isLoadingNext = true
         nextError = nil
@@ -510,7 +542,9 @@ struct ReaderView: View {
                     decodeWidth: decodeWidth,
                     rightToLeft: mode == .rightToLeft,
                     trimBorders: settings.trimPageBorders,
-                    onTap: { position in handlePagedTap(position, spreads: spreads) }
+                    scaleMode: settings.pagedScaleMode,
+                    onTap: { position in handlePagedTap(position, spreads: spreads) },
+                    longPress: pageActions
                 )
                 .tag(offset)
             }
@@ -581,11 +615,11 @@ struct ReaderView: View {
             Text("Terminaste \(chapter.name)")
                 .font(.headline)
                 .foregroundStyle(controlColor)
-            if hasNext {
+            if let next = targetIndex(from: chapterIndex, direction: 1) {
                 Button {
-                    Task { await go(to: chapterIndex + 1) }
+                    Task { await go(to: next) }
                 } label: {
-                    Label("Siguiente: \(context.chapters[chapterIndex + 1].name)", systemImage: "forward.end")
+                    Label("Siguiente: \(context.chapters[next].name)", systemImage: "forward.end")
                         .lineLimit(1)
                 }
                 .buttonStyle(.borderedProminent)
@@ -658,7 +692,9 @@ struct ReaderView: View {
 
                 HStack(spacing: 18) {
                     Button {
-                        Task { await go(to: chapterIndex - 1) }
+                        if let target = targetIndex(from: chapterIndex, direction: -1) {
+                            Task { await go(to: target) }
+                        }
                     } label: {
                         Image(systemName: "backward.end.fill")
                     }
@@ -693,8 +729,13 @@ struct ReaderView: View {
                                 Label(item.title, systemImage: item.symbol).tag(item)
                             }
                         }
+                        Divider()
+                        Toggle("Saltar capítulos leídos", isOn: $settings.skipReadChapters)
                         if mode != .webtoon {
                             Divider()
+                            Picker("Escala de página", selection: $settings.pagedScaleMode) {
+                                ForEach(PageScaleMode.allCases) { Text($0.title).tag($0) }
+                            }
                             Picker("Doble página", selection: $settings.doublePageMode) {
                                 ForEach(DoublePageMode.allCases) { Text($0.title).tag($0) }
                             }
@@ -706,7 +747,9 @@ struct ReaderView: View {
                     .accessibilityLabel("Modo de lectura")
 
                     Button {
-                        Task { await go(to: chapterIndex + 1) }
+                        if let target = targetIndex(from: chapterIndex, direction: 1) {
+                            Task { await go(to: target) }
+                        }
                     } label: {
                         Image(systemName: "forward.end.fill")
                     }
@@ -841,6 +884,113 @@ struct ReaderView: View {
             downloads.delete(manga: context.manga, chapter: finished)
         }
     }
+
+    // MARK: - Page actions
+
+    private var pageActions: PageLongPressActions {
+        PageLongPressActions(
+            canSetCover: library.contains(context.manga),
+            onSave: { image in savePage(image) },
+            onSetCover: { image in setAsCover(image) }
+        )
+    }
+
+    private func showToast(_ message: String) {
+        withAnimation(.easeInOut(duration: 0.2)) { toast = message }
+        toastTask?.cancel()
+        toastTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_400_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.3)) { toast = nil }
+        }
+    }
+
+    private func savePage(_ image: UIImage) {
+        Task {
+            let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+            guard status == .authorized || status == .limited else {
+                showToast(NSLocalizedString(
+                    "Permite el acceso a Fotos en los Ajustes del sistema para guardar páginas.",
+                    comment: ""
+                ))
+                return
+            }
+            do {
+                try await PHPhotoLibrary.shared().performChanges {
+                    PHAssetChangeRequest.creationRequestForAsset(from: image)
+                }
+                showToast(NSLocalizedString("Página guardada en Fotos.", comment: ""))
+            } catch {
+                showToast(String(
+                    format: NSLocalizedString("No se pudo guardar: %@", comment: ""),
+                    error.localizedDescription
+                ))
+            }
+        }
+    }
+
+    private func setAsCover(_ image: UIImage) {
+        let manga = context.manga
+        Task {
+            // A cover never needs more than ~900 px of width; resize off the main actor.
+            let jpeg = await Task.detached(priority: .userInitiated) { () -> Data? in
+                let scale = min(1, 900 / max(image.size.width, 1))
+                let width = image.size.width * scale
+                let height = image.size.height * scale
+                // A whole webtoon strip never fits a cover: keep its top.
+                let canvas = CGSize(width: width, height: min(height, 1600))
+                let format = UIGraphicsImageRendererFormat()
+                // Points are pixels here; the screen scale would triple every dimension.
+                format.scale = 1
+                let renderer = UIGraphicsImageRenderer(size: canvas, format: format)
+                let resized = renderer.image { _ in
+                    image.draw(in: CGRect(x: 0, y: 0, width: width, height: height))
+                }
+                return resized.jpegData(compressionQuality: 0.85)
+            }.value
+            guard let jpeg else { return }
+            library.setCustomCover(jpeg, for: manga)
+            showToast(NSLocalizedString("Portada actualizada.", comment: ""))
+        }
+    }
+}
+
+/// What a long press on a page offers; the reader owns the handlers.
+struct PageLongPressActions {
+    let canSetCover: Bool
+    let onSave: (UIImage) -> Void
+    let onSetCover: (UIImage) -> Void
+}
+
+extension View {
+    /// Long-press menu on a loaded page: share it, save it to Photos, or make it the cover.
+    @ViewBuilder
+    func pageContextMenu(image: UIImage?, actions: PageLongPressActions?) -> some View {
+        if let image, let actions {
+            contextMenu {
+                ShareLink(
+                    item: Image(uiImage: image),
+                    preview: SharePreview("Página", image: Image(uiImage: image))
+                ) {
+                    Label("Compartir página", systemImage: "square.and.arrow.up")
+                }
+                Button {
+                    actions.onSave(image)
+                } label: {
+                    Label("Guardar en Fotos", systemImage: "square.and.arrow.down")
+                }
+                if actions.canSetCover {
+                    Button {
+                        actions.onSetCover(image)
+                    } label: {
+                        Label("Usar como portada", systemImage: "photo")
+                    }
+                }
+            }
+        } else {
+            self
+        }
+    }
 }
 
 /// One paged-mode screen: a single page, or two pages merged into an open-book spread.
@@ -852,7 +1002,9 @@ struct SpreadPageView: View {
     let decodeWidth: CGFloat
     let rightToLeft: Bool
     let trimBorders: Bool
+    var scaleMode: PageScaleMode = .fit
     let onTap: ((CGFloat) -> Void)?
+    var longPress: PageLongPressActions? = nil
 
     @State private var image: UIImage?
     @State private var failed: String?
@@ -865,8 +1017,9 @@ struct SpreadPageView: View {
     var body: some View {
         Group {
             if let image {
-                ZoomableImageView(image: image) { position in onTap?(position) }
+                ZoomableImageView(image: image, scaleMode: scaleMode) { position in onTap?(position) }
                     .frame(width: size.width, height: size.height)
+                    .pageContextMenu(image: image, actions: longPress)
             } else if let failed {
                 VStack(spacing: 10) {
                     Image(systemName: "exclamationmark.triangle")
@@ -936,6 +1089,7 @@ struct ReaderPageView: View {
     let fitHeight: CGFloat?
     /// Paged mode only: horizontal tap position, 0 (left) to 1 (right).
     let onTap: ((CGFloat) -> Void)?
+    var longPress: PageLongPressActions? = nil
 
     @State private var image: UIImage?
     @State private var failed: String?
@@ -947,11 +1101,13 @@ struct ReaderPageView: View {
                 if let fitHeight {
                     ZoomableImageView(image: image) { position in onTap?(position) }
                         .frame(width: width, height: fitHeight)
+                        .pageContextMenu(image: image, actions: longPress)
                 } else {
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(image.size, contentMode: .fit)
                         .frame(width: width)
+                        .pageContextMenu(image: image, actions: longPress)
                 }
             } else if let failed {
                 VStack(spacing: 10) {
