@@ -174,8 +174,13 @@ final class JVMEngine: @unchecked Sendable {
             queue.async {
                 do {
                     continuation.resume(returning: try work(runtime))
-                } catch {
+                } catch let error as EngineError {
                     continuation.resume(throwing: error)
+                } catch {
+                    // The JVM bridge throws raw Java messages ("java.io.IOException:
+                    // Cloudflare bypass…"); route them through the same readable
+                    // mapping the host responses get.
+                    continuation.resume(throwing: EngineError.host(error.localizedDescription))
                 }
             }
         }
@@ -388,8 +393,10 @@ final class JVMEngine: @unchecked Sendable {
 
     // MARK: - Web login (Cloudflare, sign-ins)
 
-    /// What the WebView flow needs: the site to open and the exact user agent the
-    /// source's HTTP client sends. A challenge solved with another agent would not count.
+    /// What the WebView flow needs: the site to open. The engine also reports its
+    /// agent, but the WebView navigates with its own Safari agent and hands THAT
+    /// one back with the cookies — Cloudflare's checker loops on a WebKit view
+    /// pretending to be the engine's desktop Chrome.
     struct WebLoginInfo: Decodable {
         let baseURL: String
         let userAgent: String

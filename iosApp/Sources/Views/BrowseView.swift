@@ -93,6 +93,8 @@ struct SourceBrowseView: View {
     @State private var appliedFilterStates: String?
     @State private var showingFilters = false
     @State private var showingWebView = false
+    /// The Cloudflare sheet opens itself only once per visit to the source.
+    @State private var autoOpenedWebView = false
 
     enum Mode: String, CaseIterable, Identifiable {
         case popular = "Popular"
@@ -288,7 +290,18 @@ struct SourceBrowseView: View {
         } catch {
             self.error = error.localizedDescription
             hasNextPage = false
+            presentWebViewForCloudflare()
         }
+    }
+
+    /// Tachimanga-style: the first Cloudflare challenge pops the WebView up on its
+    /// own, once per visit; after that the error screen's button takes over.
+    private func presentWebViewForCloudflare() {
+        guard !autoOpenedWebView, items.isEmpty,
+              error?.localizedCaseInsensitiveContains("cloudflare") == true,
+              extensions.extensionFor(sourceId: source.id) != nil else { return }
+        autoOpenedWebView = true
+        showingWebView = true
     }
 }
 

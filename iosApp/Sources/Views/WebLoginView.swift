@@ -96,7 +96,11 @@ struct WebLoginSheet: View {
             }
             self.info = info
             model.onPageFinished = { Task { await pushCookies() } }
-            model.start(userAgent: info.userAgent, url: target)
+            // The page navigates with the WebView's own Safari agent, never the
+            // engine's: Cloudflare's checker loops forever on a WebKit view that
+            // claims to be desktop Chrome. The agent that solved the challenge
+            // travels to the engine with the cookies, so they stay valid there.
+            model.start(url: target)
         } catch {
             loadError = error.localizedDescription
         }
@@ -174,25 +178,29 @@ final class WebLoginModel: NSObject, ObservableObject, WKNavigationDelegate {
     private(set) lazy var webView: WKWebView = {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
+        // A full Safari signature. The bare WKWebView agent has no Safari token
+        // and some checkers treat it as an in-app bot.
+        configuration.applicationNameForUserAgent = "Version/17.4 Mobile/15E148 Safari/604.1"
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.navigationDelegate = self
         return view
     }()
 
-    private var configuredUserAgent: String?
     private var defaultUserAgent: String?
     private var startRequest: URLRequest?
     var onPageFinished: (() -> Void)?
 
     /// The agent the pages actually navigated with; the harvested cookies only
-    /// count for requests that send this same agent.
-    var effectiveUserAgent: String? { configuredUserAgent ?? defaultUserAgent }
+    /// count for requests that send this same agent, so it travels with them.
+    var effectiveUserAgent: String? { defaultUserAgent }
 
-    func start(userAgent: String?, url: URL) {
+    func start(url: URL) {
         guard startRequest == nil else { return }
-        if let userAgent, !userAgent.isEmpty, userAgent != "null" {
-            configuredUserAgent = userAgent
-            webView.customUserAgent = userAgent
+        // Captured before the first page, so closing early still has the agent.
+        webView.evaluateJavaScript("navigator.userAgent") { [weak self] value, _ in
+            if let agent = value as? String, self?.defaultUserAgent == nil {
+                self?.defaultUserAgent = agent
+            }
         }
         let request = URLRequest(url: url)
         startRequest = request
@@ -215,7 +223,7 @@ final class WebLoginModel: NSObject, ObservableObject, WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         isLoading = false
         title = webView.title ?? ""
-        if configuredUserAgent == nil, defaultUserAgent == nil {
+        if defaultUserAgent == nil {
             webView.evaluateJavaScript("navigator.userAgent") { [weak self] value, _ in
                 self?.defaultUserAgent = value as? String
                 self?.onPageFinished?()
