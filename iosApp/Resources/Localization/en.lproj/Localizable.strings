@@ -380,3 +380,6 @@
 "Tamaño original" = "Original size";
 "Capítulos" = "Chapters";
 "Al pasar de capítulo, el lector salta los que ya marcaste como leídos." = "When moving between chapters, the reader skips the ones you already marked as read.";
+
+/* Mixed-source exception */
+"Esa serie tiene contenido para adultos y no se puede agregar." = "That series has adult content and cannot be added.";

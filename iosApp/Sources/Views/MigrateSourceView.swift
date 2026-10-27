@@ -213,6 +213,14 @@ struct MigrateSourceView: View {
         defer { isMigrating = false }
         do {
             let details = try await JVMEngine.shared.details(of: target, installed: installed)
+            // The search listing rarely carries genres; the full details can reveal
+            // an adult tag the listing hid.
+            guard ContentFilter.isAllowed(details.manga) else {
+                migrationError = NSLocalizedString(
+                    "Esa serie tiene contenido para adultos y no se puede agregar.", comment: ""
+                )
+                return
+            }
             library.migrate(from: manga, to: details.manga, chapters: details.chapters)
             onMigrated(details.manga, details.chapters)
             dismiss()

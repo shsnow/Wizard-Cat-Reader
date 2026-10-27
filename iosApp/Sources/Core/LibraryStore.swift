@@ -283,6 +283,9 @@ final class LibraryStore: ObservableObject {
     /// A library entry's chapters stamped with their series, for the Novedades list.
     var latestUploads: [(manga: MangaItem, chapter: ChapterItem)] {
         entries.values
+            // An entry can become blocked after the fact (a source adds an adult tag on
+            // refresh); the library hides it, so the activity lists must too.
+            .filter { ContentFilter.isAllowed($0.manga) }
             .flatMap { entry in entry.chapters.map { (manga: entry.manga, chapter: $0) } }
             .filter { $0.1.dateUpload > 0 }
             .sorted { $0.1.dateUpload > $1.1.dateUpload }

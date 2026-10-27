@@ -231,9 +231,11 @@ private struct HistoryList: View {
     }
 
     private var filtered: [ReadingRecord] {
+        // Series blocked after the fact disappear from the history too.
+        let allowed = library.history.filter { ContentFilter.isAllowed($0.manga) }
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return library.history }
-        return library.history.filter {
+        guard !trimmed.isEmpty else { return allowed }
+        return allowed.filter {
             $0.manga.title.localizedCaseInsensitiveContains(trimmed)
                 || $0.chapterName.localizedCaseInsensitiveContains(trimmed)
         }
