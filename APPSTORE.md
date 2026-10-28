@@ -13,13 +13,13 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 | **Categoría principal** | Libros (Books) |
 | **Categoría secundaria** | Entretenimiento |
 | **Precio** | Gratis |
-| **URL de soporte** | https://shsnow.github.io/Wizard-Cat-Reader/ |
-| **URL de privacidad** | https://shsnow.github.io/Wizard-Cat-Reader/privacy.html |
+| **URL de soporte** | https://wizardcatstore.cl/reader/ |
+| **URL de privacidad** | https://wizardcatstore.cl/reader/privacidad/ |
 | **URL de marketing** | https://wizardcatstore.cl/ |
 | **Correo de contacto** | contacto@wizardcatstore.cl (reenvía a wizardcatstore1@gmail.com) |
 
-> Las URLs funcionan tras activar GitHub Pages (ver al final). Si algún día renombras el repo,
-> cambian solas de nombre — actualízalas en ASC.
+> Las páginas viven en el repo Wizard-Cat-Store-Web (Cloudflare). La versión 1.0 se envió con
+> las de GitHub Pages (`shsnow.github.io/Wizard-Cat-Reader/`), que siguen activas como respaldo.
 
 ## Texto promocional (≤170, editable sin nueva versión)
 

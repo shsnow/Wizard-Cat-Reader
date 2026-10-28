@@ -112,10 +112,10 @@ struct SettingsView: View {
                         LocalStore.shared.restoreSample(library: library)
                     }
                 }
-                if let support = URL(string: "https://shsnow.github.io/Wizard-Cat-Reader/") {
+                if let support = URL(string: "https://wizardcatstore.cl/reader/") {
                     Link("Sitio de soporte", destination: support)
                 }
-                if let privacy = URL(string: "https://shsnow.github.io/Wizard-Cat-Reader/privacy.html") {
+                if let privacy = URL(string: "https://wizardcatstore.cl/reader/privacidad/") {
                     Link("Política de privacidad", destination: privacy)
                 }
                 if let contact = URL(string: "mailto:contacto@wizardcatstore.cl") {
