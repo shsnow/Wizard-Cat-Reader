@@ -491,6 +491,14 @@ final class LibraryStore: ObservableObject {
         entries[entryId]?.categories?.contains(categoryId) ?? false
     }
 
+    /// Replaces the categories of one series (the category picker's answer).
+    func setCategories(_ ids: [String], for manga: MangaItem) {
+        guard var entry = entries[manga.id] else { return }
+        entry.categories = ids.isEmpty ? nil : ids
+        entries[manga.id] = entry
+        saveLibrary()
+    }
+
     /// Adds the category to every given entry; if all of them already have it, removes it instead.
     func toggleCategory(_ categoryId: String, forEntries ids: [String]) {
         let present = ids.filter { isInCategory($0, categoryId) }

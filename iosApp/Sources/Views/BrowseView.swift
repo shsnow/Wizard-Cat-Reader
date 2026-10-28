@@ -78,8 +78,25 @@ struct BrowseView: View {
 struct SourceBrowseView: View {
     let source: SourceInfo
 
+    /// A series saved from the grid has no chapter list yet: fetched quietly, so its unread
+    /// count and the library updates work from the start.
+    private func fetchChapters(for manga: MangaItem) {
+        guard let installed = extensions.extensionFor(sourceId: manga.sourceId) else { return }
+        Task {
+            guard let result = try? await JVMEngine.shared.details(
+                of: manga, installed: installed, priority: .background
+            ) else { return }
+            var fresh = result.manga
+            fresh.url = manga.url
+            library.refresh(fresh, chapters: result.chapters)
+        }
+    }
+
     @EnvironmentObject private var extensions: ExtensionManager
+    @EnvironmentObject private var library: LibraryStore
     @State private var mode: Mode = .popular
+    /// Long-pressed cover: saved to the library from here, without opening it.
+    @State private var quickAdd: MangaItem?
     @State private var query = ""
     @State private var submittedQuery = ""
     @State private var items: [MangaItem] = []
@@ -158,7 +175,9 @@ struct SourceBrowseView: View {
                     items: items,
                     onItemAppear: { manga in
                         if manga.id == items.last?.id { Task { await loadNextPage() } }
-                    }
+                    },
+                    onItemLongPress: { manga in quickAdd = manga },
+                    isInLibrary: { library.contains($0) }
                 ) {
                     if isLoading {
                         ProgressView()
@@ -204,6 +223,13 @@ struct SourceBrowseView: View {
                     }
                 }
             }
+        }
+        .sheet(item: $quickAdd) { manga in
+            CategoryPickerSheet(manga: manga) { added in
+                if added { fetchChapters(for: manga) }
+            }
+            .environmentObject(library)
+            .environmentObject(extensions)
         }
         .sheet(isPresented: $showingFilters) {
             if let installed = extensions.extensionFor(sourceId: source.id) {

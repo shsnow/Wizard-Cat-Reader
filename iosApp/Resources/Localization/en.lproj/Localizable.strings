@@ -383,3 +383,9 @@
 
 /* Mixed-source exception */
 "Esa serie tiene contenido para adultos y no se puede agregar." = "That series has adult content and cannot be added.";
+
+/* Category picker */
+"Agregar a la biblioteca" = "Add to library";
+"En la biblioteca" = "In library";
+"Cambiar categorías" = "Change categories";
+"Sin categorías, la serie queda en “Todas”. Crea una para ordenarla." = "With no categories, the series stays under “All”. Create one to organize it.";

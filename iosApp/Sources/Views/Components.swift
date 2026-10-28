@@ -68,6 +68,8 @@ struct MangaCell: View {
     let manga: MangaItem
     var badge: Int = 0
     var selected: Bool? = nil
+    /// Explorar marks what is already saved.
+    var inLibrary = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -90,6 +92,17 @@ struct MangaCell: View {
                             .background(Color.moka, in: Capsule())
                             .foregroundStyle(.white)
                             .padding(6)
+                    }
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    if inLibrary && selected == nil {
+                        Image(systemName: "bookmark.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(6)
+                            .background(Color.moka, in: Circle())
+                            .padding(6)
+                            .accessibilityLabel("En la biblioteca")
                     }
                 }
                 .overlay(alignment: .topTrailing) {
@@ -124,6 +137,8 @@ struct MangaGrid<Footer: View>: View {
     var onItemAppear: (MangaItem) -> Void = { _ in }
     /// Called on a long press when not selecting; the library uses it to start selection.
     var onItemLongPress: ((MangaItem) -> Void)? = nil
+    /// Marks cells whose series is already in the library.
+    var isInLibrary: (MangaItem) -> Bool = { _ in false }
     /// Non-nil puts the grid in selection mode: taps toggle membership instead of navigating.
     var selection: Binding<Set<String>>? = nil
     /// Scrolls away with the content, like the library's "Seguir leyendo" row.
@@ -168,7 +183,7 @@ struct MangaGrid<Footer: View>: View {
                         .buttonStyle(.plain)
                     } else {
                         NavigationLink(value: manga) {
-                            MangaCell(manga: manga, badge: badge(manga))
+                            MangaCell(manga: manga, badge: badge(manga), inLibrary: isInLibrary(manga))
                         }
                         .buttonStyle(.plain)
                         .simultaneousGesture(

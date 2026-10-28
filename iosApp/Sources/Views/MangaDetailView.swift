@@ -31,6 +31,7 @@ struct MangaDetailView: View {
     @State private var confirmingDeleteDownloads = false
     @State private var confirmingRemoval = false
     @State private var showingWebLogin = false
+    @State private var showingCategories = false
 
     init(manga: MangaItem) {
         _manga = State(initialValue: manga)
@@ -115,6 +116,11 @@ struct MangaDetailView: View {
         .fullScreenCover(item: $reader) { context in
             ReaderView(context: context)
         }
+        .sheet(isPresented: $showingCategories) {
+            CategoryPickerSheet(manga: manga, chapters: chapters)
+                .environmentObject(library)
+                .environmentObject(extensions)
+        }
     }
 
     private var content: some View {
@@ -172,6 +178,11 @@ struct MangaDetailView: View {
                             }
                         }
                         if library.contains(manga) {
+                            Button {
+                                showingCategories = true
+                            } label: {
+                                Label("Categorías", systemImage: "folder")
+                            }
                             Button {
                                 pickingCover = true
                             } label: {
@@ -583,9 +594,48 @@ struct MangaDetailView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                libraryButton
+                    .padding(.top, 4)
             }
             Spacer(minLength: 0)
         }
+    }
+
+    /// The obvious way to save a series: in the library it shows (and edits) its categories.
+    private var libraryButton: some View {
+        let inLibrary = library.contains(manga)
+        let names = (library.entry(for: manga)?.categories ?? []).compactMap { id in
+            library.categories.first { $0.id == id }?.name
+        }
+        let title: String
+        if !inLibrary {
+            title = NSLocalizedString("Agregar a la biblioteca", comment: "")
+        } else if names.isEmpty {
+            title = NSLocalizedString("En la biblioteca", comment: "")
+        } else {
+            title = names.joined(separator: ", ")
+        }
+        return Button {
+            if inLibrary {
+                showingCategories = true
+            } else {
+                toggleLibrary()
+            }
+        } label: {
+            Label(title, systemImage: inLibrary ? "bookmark.fill" : "plus")
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .foregroundStyle(inLibrary ? Color.primary : Color.white)
+                .background(
+                    inLibrary ? Color(.secondarySystemBackground) : Color.moka,
+                    in: Capsule()
+                )
+        }
+        // Inside a List row: only the capsule reacts, not the whole header.
+        .buttonStyle(.borderless)
+        .accessibilityHint(inLibrary ? Text("Cambiar categorías") : Text(""))
     }
 
     private func chapterRow(_ chapter: ChapterItem) -> some View {
@@ -773,9 +823,12 @@ struct MangaDetailView: View {
             } else {
                 library.remove(manga)
             }
-        } else {
+        } else if library.categories.isEmpty {
             library.add(manga, chapters: chapters)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } else {
+            // With categories to choose from, saving asks where it goes.
+            showingCategories = true
         }
     }
 
