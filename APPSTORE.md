@@ -15,6 +15,8 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 | **Precio** | Gratis |
 | **URL de soporte** | https://shsnow.github.io/Wizard-Cat-Reader/ |
 | **URL de privacidad** | https://shsnow.github.io/Wizard-Cat-Reader/privacy.html |
+| **URL de marketing** | https://wizardcatstore.cl/ |
+| **Correo de contacto** | contacto@wizardcatstore.cl (reenvía a wizardcatstore1@gmail.com) |
 
 > Las URLs funcionan tras activar GitHub Pages (ver al final). Si algún día renombras el repo,
 > cambian solas de nombre — actualízalas en ASC.
@@ -26,7 +28,7 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 
 ## Descripción (español)
 
-> Wizard Cat Reader es un lector de manga, manhwa y webtoons para iPhone y iPad: gratuito, sin
+> Wizard Cat Reader es un lector de manga, manhwa y webtoons para iPhone: gratuito, sin
 > publicidad, sin cuentas y sin recolección de datos.
 >
 > TU BIBLIOTECA
@@ -56,7 +58,7 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 
 ## Description (English)
 
-> Wizard Cat Reader is a free manga, manhwa and webtoon reader for iPhone and iPad — no ads,
+> Wizard Cat Reader is a free manga, manhwa and webtoon reader for iPhone — no ads,
 > no accounts, no data collection.
 >
 > YOUR LIBRARY

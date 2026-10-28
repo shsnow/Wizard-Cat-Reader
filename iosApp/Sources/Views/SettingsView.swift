@@ -118,6 +118,12 @@ struct SettingsView: View {
                 if let privacy = URL(string: "https://shsnow.github.io/Wizard-Cat-Reader/privacy.html") {
                     Link("Política de privacidad", destination: privacy)
                 }
+                if let contact = URL(string: "mailto:contacto@wizardcatstore.cl") {
+                    Link("Escríbenos: contacto@wizardcatstore.cl", destination: contact)
+                }
+                if let store = URL(string: "https://wizardcatstore.cl/") {
+                    Link("Más apps de Wizard Cat Store", destination: store)
+                }
                 NavigationLink("Licencias y créditos") { LicensesView() }
             } header: {
                 Text("Acerca de")
