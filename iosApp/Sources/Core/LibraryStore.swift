@@ -66,7 +66,14 @@ final class LibraryStore: ObservableObject {
     /// The page each unfinished chapter was left on, keyed "mangaId#chapterURL". Not
     /// @Published on purpose: it changes on every page turn, and nothing on screen shows it,
     /// so publishing it would redraw the reader (and the library) at every page.
-    private var pagePositions: [String: Int]
+    private var pagePositions: [String: PagePosition]
+
+    /// Where an unfinished chapter was left: the page (0-based) and, when the reader knew
+    /// it, how many pages the chapter has. Backups only carry the page.
+    struct PagePosition: Codable, Equatable {
+        var page: Int
+        var total: Int?
+    }
     private static let historyLimit = 300
 
     private init() {
@@ -74,7 +81,11 @@ final class LibraryStore: ObservableObject {
         progress = Storage.load([String: MangaProgress].self, from: Self.progressFile) ?? [:]
         history = Storage.load([ReadingRecord].self, from: Self.historyFile) ?? []
         categories = Storage.load([LibraryCategory].self, from: Self.categoriesFile) ?? []
-        pagePositions = Storage.load([String: Int].self, from: Self.pagesFile) ?? [:]
+        // The first version of pages.json stored only the page number.
+        pagePositions = Storage.load([String: PagePosition].self, from: Self.pagesFile)
+            ?? Storage.load([String: Int].self, from: Self.pagesFile)?
+                .mapValues { PagePosition(page: $0, total: nil) }
+            ?? [:]
     }
 
     // MARK: - Page within a chapter
@@ -86,27 +97,41 @@ final class LibraryStore: ObservableObject {
     /// The page to reopen the chapter on: where it was left, unless it was finished.
     func resumePage(for chapter: ChapterItem, in manga: MangaItem) -> Int {
         guard !isRead(chapter, in: manga) else { return 0 }
-        return pagePositions[Self.pageKey(chapter.url, in: manga)] ?? 0
+        return pagePositions[Self.pageKey(chapter.url, in: manga)]?.page ?? 0
+    }
+
+    /// What the chapter list shows ("Página 3/18"): nil when not started or finished.
+    func pagePosition(for chapter: ChapterItem, in manga: MangaItem) -> PagePosition? {
+        guard !isRead(chapter, in: manga) else { return nil }
+        return pagePositions[Self.pageKey(chapter.url, in: manga)]
     }
 
     /// Raw saved page, for backups (Mihon's lastPageRead).
     func savedPage(chapterURL: String, in manga: MangaItem) -> Int? {
-        pagePositions[Self.pageKey(chapterURL, in: manga)]
+        pagePositions[Self.pageKey(chapterURL, in: manga)]?.page
     }
 
     /// Remembers the page the reader is on; page 0 forgets it.
-    func setPage(_ page: Int, chapter: ChapterItem, in manga: MangaItem) {
-        setPage(page, chapterURL: chapter.url, in: manga)
+    func setPage(_ page: Int, total: Int? = nil, chapter: ChapterItem, in manga: MangaItem) {
+        setPage(page, total: total, chapterURL: chapter.url, in: manga)
     }
 
-    func setPage(_ page: Int, chapterURL: String, in manga: MangaItem) {
+    func setPage(_ page: Int, total: Int? = nil, chapterURL: String, in manga: MangaItem) {
         let key = Self.pageKey(chapterURL, in: manga)
         // A finished chapter reopens from the start; its page is not worth keeping.
         let finished = progress[manga.id]?.readChapters.contains(chapterURL) ?? false
-        let value = page > 0 && !finished ? page : nil
+        let value = page > 0 && !finished
+            ? PagePosition(page: page, total: total ?? pagePositions[key]?.total)
+            : nil
         guard pagePositions[key] != value else { return }
         pagePositions[key] = value
         Storage.save(pagePositions, to: Self.pagesFile)
+    }
+
+    /// Positions are not published (they change on every page turn); the reader calls this
+    /// when it closes so the chapter list shows where each chapter was left.
+    func pagePositionsChanged() {
+        objectWillChange.send()
     }
 
     /// A finished chapter reopens from the start.

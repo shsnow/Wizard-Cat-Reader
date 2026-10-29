@@ -258,6 +258,7 @@ struct ReaderView: View {
             stopAutoScroll()
             UIApplication.shared.isIdleTimerDisabled = false
             library.addReadingTime(Date().timeIntervalSince(sessionStart), to: context.manga)
+            library.pagePositionsChanged()
         }
     }
 
@@ -385,7 +386,8 @@ struct ReaderView: View {
             return Int(key.dropFirst(prefix.count))
         }
         guard let top = offsets.min() else { return }
-        library.setPage(top, chapter: context.chapters[index], in: context.manga)
+        let total = segments.first { $0.chapterIndex == index }?.pages.count
+        library.setPage(top, total: total, chapter: context.chapters[index], in: context.manga)
     }
 
     private func segmentDivider(for segment: WebtoonSegment) -> some View {
@@ -620,7 +622,7 @@ struct ReaderView: View {
         .onChange(of: currentPage) { value in
             prefetch(after: value, in: pages, decodeWidth: decodeWidth)
             if value < pages.count {
-                library.setPage(value, chapter: chapter, in: context.manga)
+                library.setPage(value, total: pages.count, chapter: chapter, in: context.manga)
             }
             if !pages.isEmpty, value >= pages.count || spreads.last?.contains(value) == true { markRead() }
         }

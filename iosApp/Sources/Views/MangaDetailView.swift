@@ -656,6 +656,17 @@ struct MangaDetailView: View {
                     HStack(spacing: 6) {
                         if let date = chapter.date { Text(date.shortText) }
                         if let scanlator = chapter.scanlator, !scanlator.isEmpty { Text("· \(scanlator)") }
+                        // Where an unfinished chapter was left, shown 1-based like the reader.
+                        if !read, let position = library.pagePosition(for: chapter, in: manga) {
+                            Group {
+                                if let total = position.total, total > 0 {
+                                    Text("· Página \(min(position.page + 1, total))/\(total)")
+                                } else {
+                                    Text("· Página \(position.page + 1)")
+                                }
+                            }
+                            .foregroundStyle(Color.moka)
+                        }
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
