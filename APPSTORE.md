@@ -99,9 +99,9 @@ Responder honesto; con fuentes agregadas por el usuario lo defendible es:
 - **Acceso web sin restricciones: SÍ** (las fuentes las agrega el usuario)
 - Todo lo demás: No
 
-→ Resultado esperado: **17+**. Las extensiones +18 no se pueden instalar, pero las mixtas sí
-y sin filtro interno, así que 17+ es la clasificación correcta (y "acceso web sin
-restricciones" ya la exige).
+→ Clasificación asignada por Apple: **16+** en 173 países o regiones, **A16** en Brasil,
+**15+** en Corea del Sur y **17+** global en iOS anteriores a la 26. Las extensiones +18 no se
+pueden instalar; las mixtas sí, sin filtro interno.
 
 ## App Privacy (sección de privacidad de datos)
 
@@ -114,7 +114,7 @@ restricciones" ya la exige).
 > includes, hosts and recommends none.
 >
 > Extensions rated adults-only by their repository cannot be installed, and this cannot be
-> changed by the user. The app is rated 17+.
+> changed by the user. The app is rated 16+ (17+ on iOS versions earlier than 26).
 >
 > To review the app's functionality out of the box: the app ships with a built-in sample
 > comic ("Guía de Wizard Cat", our own illustrated guide) that appears in the Library on
