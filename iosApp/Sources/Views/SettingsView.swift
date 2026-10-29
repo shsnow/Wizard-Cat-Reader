@@ -102,6 +102,31 @@ struct SettingsView: View {
             }
 
             Section {
+                if settings.contentSettingsLocked {
+                    // Locked by a parent: the level shows, nothing opens.
+                    HStack {
+                        hubRow("Restricción de contenido", symbol: "lock.fill")
+                        Spacer()
+                        Text(settings.contentLevel.title)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    NavigationLink {
+                        ContentSettingsView()
+                    } label: {
+                        HStack {
+                            hubRow("Restricción de contenido", symbol: "hand.raised")
+                            Spacer()
+                            Text(settings.contentLevel.title)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            Section {
                 HStack {
                     Text("Versión")
                     Spacer()
@@ -129,7 +154,7 @@ struct SettingsView: View {
                 Text("Acerca de")
             } footer: {
                 Label(
-                    "Las extensiones marcadas solo para adultos (+18) no se pueden instalar.",
+                    "Qué extensiones se permiten se elige en Restricción de contenido.",
                     systemImage: "checkmark.shield"
                 )
             }

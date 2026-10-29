@@ -8,7 +8,6 @@ struct BrowseView: View {
 
     private var visibleSources: [SourceInfo] {
         extensions.installed
-            .filter { !$0.nsfw }
             .flatMap(\.sources)
             .filter { settings.shows(language: $0.lang) }
     }

@@ -399,3 +399,27 @@
 "Ver desde la página 1 (seguías en la %lld)" = "Start from page 1 (you were on page %lld)";
 "· Página %lld/%lld" = "· Page %lld/%lld";
 "· Página %lld" = "· Page %lld";
+
+/* Content restriction */
+"Normales y mixtas" = "Normal and mixed";
+"Solo normales" = "Normal only";
+"Normales y excepciones" = "Normal and exceptions";
+"Se permiten las extensiones normales y las mixtas (con algo de contenido para adultos). Las +18 se bloquean." = "Normal and mixed extensions (with some adult content) are allowed. 18+ ones are blocked.";
+"Solo se permiten las extensiones normales. Las mixtas y las +18 se bloquean." = "Only normal extensions are allowed. Mixed and 18+ ones are blocked.";
+"La restricción de contenido no permite esta extensión." = "The content restriction does not allow this extension.";
+"Esta extensión es solo para adultos y la restricción de contenido no la permite." = "This extension is adults-only and the content restriction does not allow it.";
+"Extensiones permitidas" = "Allowed extensions";
+"Las extensiones instaladas que queden fuera se desinstalan y sus series se ocultan." = "Installed extensions left out are uninstalled and their series hidden.";
+"Ocultar esta configuración" = "Hide these settings";
+"Pensado como control parental: deja la restricción elegida y quita esta pantalla de la app. Después no se puede volver a abrir." = "Meant as a parental control: keeps the chosen restriction and removes this screen from the app. It cannot be opened again afterwards.";
+"Restricción de contenido" = "Content restriction";
+"¿Ocultar la restricción de contenido?" = "Hide the content restriction?";
+"Ocultar para siempre" = "Hide forever";
+"Quedará fijo “%@” y esta configuración desaparecerá de Ajustes. No hay forma de volver a abrirla: solo borrando y reinstalando la app." = "“%@” stays fixed and these settings disappear from Settings. There is no way to open them again, short of deleting and reinstalling the app.";
+"Agrega un repositorio en Extensiones para elegir excepciones." = "Add a repository in Extensions to pick exceptions.";
+"Buscar extensión" = "Search extension";
+"Excepciones (%lld)" = "Exceptions (%lld)";
+"Qué extensiones se permiten se elige en Restricción de contenido." = "Which extensions are allowed is set in Content restriction.";
+"Se permiten las extensiones normales y solo las mixtas que elijas abajo. Las +18 se bloquean." = "Normal extensions are allowed, plus only the mixed ones you pick below. 18+ ones are blocked.";
+"Tus repositorios no tienen extensiones mixtas." = "Your repositories have no mixed extensions.";
+"Solo estas extensiones mixtas se permiten, además de las normales. Las +18 nunca se permiten." = "Only these mixed extensions are allowed, besides the normal ones. 18+ ones are never allowed.";

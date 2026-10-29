@@ -227,6 +227,33 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(skipReadChapters, forKey: "skipReadChapters") }
     }
 
+    // MARK: - Content restriction (parental control)
+
+    /// Which extensions may be installed and kept. Tightening it uninstalls the ones left out.
+    @Published var contentLevel: ContentLevel {
+        didSet {
+            defaults.set(contentLevel.rawValue, forKey: "contentLevel")
+            ExtensionManager.shared.enforceContentPolicy()
+        }
+    }
+
+    /// Package names of MIXED or +18 extensions allowed under `.exceptions`.
+    @Published var contentExceptions: Set<String> {
+        didSet {
+            defaults.set(Array(contentExceptions), forKey: "contentExceptions")
+            ExtensionManager.shared.enforceContentPolicy()
+        }
+    }
+
+    /// Once true, the restriction settings are gone from the app for good: the policy keeps
+    /// applying, but nothing in the interface can change it. Like a parental lock.
+    @Published private(set) var contentSettingsLocked: Bool
+
+    func lockContentSettings() {
+        contentSettingsLocked = true
+        defaults.set(true, forKey: "contentSettingsLocked")
+    }
+
     private init() {
         // A local, so nothing reads `self` before every stored property is initialized.
         let defaults = UserDefaults.standard
@@ -264,6 +291,9 @@ final class AppSettings: ObservableObject {
         pagedScaleMode = PageScaleMode(rawValue: defaults.string(forKey: "pagedScaleMode") ?? "")
             ?? .fit
         skipReadChapters = defaults.bool(forKey: "skipReadChapters")
+        contentLevel = ContentLevel(rawValue: defaults.string(forKey: "contentLevel") ?? "") ?? .mixed
+        contentExceptions = Set(defaults.stringArray(forKey: "contentExceptions") ?? [])
+        contentSettingsLocked = defaults.bool(forKey: "contentSettingsLocked")
     }
 
     func shows(language: String) -> Bool {

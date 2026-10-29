@@ -8,8 +8,7 @@ struct ExtensionsView: View {
     @State private var repositoryText = ""
 
     private var available: [CatalogExtension] {
-        extensions.catalog
-            .filter { !$0.nsfw }
+        extensions.visibleCatalog
             .filter { item in item.languages.contains { settings.shows(language: $0) } }
             .filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
     }

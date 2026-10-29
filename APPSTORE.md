@@ -51,8 +51,8 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 >   sin cuentas ni servidores nuestros, compatible con las copias de Mihon en Android.
 > • Estadísticas de lectura calculadas en tu dispositivo.
 >
-> SIN EXTENSIONES +18
-> • Las extensiones calificadas solo para adultos no se pueden instalar.
+> CONTROL PARENTAL
+> • Las extensiones +18 nunca se pueden instalar. Elige si se permiten las mixtas (todas, ninguna o las que elijas) y oculta esa configuración para que no se pueda cambiar.
 >
 > Wizard Cat Reader es software libre (Apache 2.0).
 
@@ -77,8 +77,8 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 > accounts, no servers of ours, compatible with Mihon backups on Android. • On-device
 > reading stats.
 >
-> NO 18+ EXTENSIONS
-> • Extensions rated adults-only cannot be installed.
+> PARENTAL CONTROL
+> • 18+ extensions can never be installed. Choose whether mixed ones are allowed (all, none or hand-picked) and hide that setting so it cannot be changed.
 >
 > Wizard Cat Reader is open source (Apache 2.0).
 
@@ -100,8 +100,8 @@ Responder honesto; con fuentes agregadas por el usuario lo defendible es:
 - Todo lo demás: No
 
 → Clasificación asignada por Apple: **16+** en 173 países o regiones, **A16** en Brasil,
-**15+** en Corea del Sur y **17+** global en iOS anteriores a la 26. Las extensiones +18 no se
-pueden instalar; las mixtas sí, sin filtro interno.
+**15+** en Corea del Sur y **17+** global en iOS anteriores a la 26. Las extensiones +18 se bloquean siempre
+(ningún nivel ni excepción las habilita), lo que sostiene la clasificación 16+.
 
 ## App Privacy (sección de privacidad de datos)
 
@@ -113,8 +113,9 @@ pueden instalar; las mixtas sí, sin filtro interno.
 > their own self-hosted servers (such as Komga) or source repositories; the app itself
 > includes, hosts and recommends none.
 >
-> Extensions rated adults-only by their repository cannot be installed, and this cannot be
-> changed by the user. The app is rated 16+ (17+ on iOS versions earlier than 26).
+> Extensions rated adults-only by their repository can never be installed. A Content
+> restriction setting chooses whether mixed extensions are allowed and can be hidden
+> permanently as a parental control. The app is rated 16+ (17+ on iOS versions earlier than 26).
 >
 > To review the app's functionality out of the box: the app ships with a built-in sample
 > comic ("Guía de Wizard Cat", our own illustrated guide) that appears in the Library on

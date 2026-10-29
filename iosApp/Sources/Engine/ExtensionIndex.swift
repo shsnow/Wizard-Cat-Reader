@@ -215,7 +215,7 @@ enum ExtensionIndex {
             versionName: versionName,
             versionCode: versionCode,
             extensionLib: extensionLib,
-            nsfw: !ContentFilter.isAllowedExtension(contentWarning: contentWarning),
+            nsfw: contentWarning >= ContentFilter.adultRating,
             iconURL: iconURL,
             jarURL: jarURL,
             sources: sources,

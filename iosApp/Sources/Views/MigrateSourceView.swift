@@ -35,7 +35,6 @@ struct MigrateSourceView: View {
     /// Every visible source except the one the series already lives on.
     private var sources: [SourceInfo] {
         extensions.installed
-            .filter { !$0.nsfw }
             .flatMap(\.sources)
             .filter { settings.shows(language: $0.lang) }
             .filter { $0.id != manga.sourceId }

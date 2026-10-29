@@ -91,7 +91,9 @@ private struct UpdatesList: View {
 
     private var days: [Day] {
         let calendar = Calendar.current
-        let updates = library.latestUploads.map { Update(manga: $0.manga, chapter: $0.chapter) }
+        let updates = library.latestUploads
+            .filter { !extensions.isRestricted(sourceId: $0.manga.sourceId) }
+            .map { Update(manga: $0.manga, chapter: $0.chapter) }
         return Dictionary(grouping: updates) { update in
             calendar.startOfDay(
                 for: Date(timeIntervalSince1970: TimeInterval(update.chapter.dateUpload) / 1000)
@@ -222,6 +224,7 @@ struct DayHeader: View {
 
 private struct HistoryList: View {
     @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var extensions: ExtensionManager
     @State private var query = ""
 
     private struct Day: Identifiable {
@@ -231,7 +234,8 @@ private struct HistoryList: View {
     }
 
     private var filtered: [ReadingRecord] {
-        let allowed = library.history
+        // Series of extensions the content restriction removed stay out of sight.
+        let allowed = library.history.filter { !extensions.isRestricted(sourceId: $0.manga.sourceId) }
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return allowed }
         return allowed.filter {

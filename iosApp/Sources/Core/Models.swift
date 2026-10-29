@@ -117,6 +117,9 @@ struct InstalledExtension: Codable, Hashable, Identifiable {
     var nsfw: Bool
     var repositoryURL: URL?
     var sources: [SourceInfo]
+    /// The rating it was installed under (0 unrated, 1 safe, 2 mixed, 3 +18). Nil for
+    /// records from older builds; filled in from the catalog when it loads.
+    var contentRating: UInt64? = nil
 
     var jarURL: URL {
         Storage.extensionsDirectory.appendingPathComponent(jarFileName)
@@ -142,6 +145,7 @@ struct CatalogExtension: Hashable, Identifiable {
     var versionName: String
     var versionCode: Int64
     var extensionLib: String
+    /// Rated adults-only (+18) by its repository.
     var nsfw: Bool
     var iconURL: URL?
     var jarURL: URL
