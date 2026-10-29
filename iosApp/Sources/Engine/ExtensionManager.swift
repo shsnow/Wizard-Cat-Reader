@@ -23,12 +23,14 @@ final class ExtensionManager: ObservableObject {
     private init() {
         repositories = Storage.load([ExtensionRepository].self, from: Self.repositoriesFile) ?? []
         installed = Storage.load([InstalledExtension].self, from: Self.installedFile) ?? []
-        // Drop records whose JAR went missing (for example after an OS storage purge).
-        installed.removeAll { !FileManager.default.fileExists(atPath: $0.jarURL.path) }
+        // Every stored property must be set before `installed` is mutated below: that goes
+        // through the @Published wrapper, which needs a fully initialized self.
         restrictedSources = Set(
             (UserDefaults.standard.array(forKey: Self.restrictedSourcesKey) as? [NSNumber] ?? [])
                 .map(\.int64Value)
         )
+        // Drop records whose JAR went missing (for example after an OS storage purge).
+        installed.removeAll { !FileManager.default.fileExists(atPath: $0.jarURL.path) }
         enforceContentPolicy()
     }
 
