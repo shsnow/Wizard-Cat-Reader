@@ -61,6 +61,12 @@ final class LibraryStore: ObservableObject {
     private static let progressFile = "progress.json"
     private static let historyFile = "history.json"
     private static let categoriesFile = "categories.json"
+    private static let pagesFile = "pages.json"
+
+    /// The page each unfinished chapter was left on, keyed "mangaId#chapterURL". Not
+    /// @Published on purpose: it changes on every page turn, and nothing on screen shows it,
+    /// so publishing it would redraw the reader (and the library) at every page.
+    private var pagePositions: [String: Int]
     private static let historyLimit = 300
 
     private init() {
@@ -68,6 +74,48 @@ final class LibraryStore: ObservableObject {
         progress = Storage.load([String: MangaProgress].self, from: Self.progressFile) ?? [:]
         history = Storage.load([ReadingRecord].self, from: Self.historyFile) ?? []
         categories = Storage.load([LibraryCategory].self, from: Self.categoriesFile) ?? []
+        pagePositions = Storage.load([String: Int].self, from: Self.pagesFile) ?? [:]
+    }
+
+    // MARK: - Page within a chapter
+
+    private static func pageKey(_ chapterURL: String, in manga: MangaItem) -> String {
+        "\(manga.id)#\(chapterURL)"
+    }
+
+    /// The page to reopen the chapter on: where it was left, unless it was finished.
+    func resumePage(for chapter: ChapterItem, in manga: MangaItem) -> Int {
+        guard !isRead(chapter, in: manga) else { return 0 }
+        return pagePositions[Self.pageKey(chapter.url, in: manga)] ?? 0
+    }
+
+    /// Raw saved page, for backups (Mihon's lastPageRead).
+    func savedPage(chapterURL: String, in manga: MangaItem) -> Int? {
+        pagePositions[Self.pageKey(chapterURL, in: manga)]
+    }
+
+    /// Remembers the page the reader is on; page 0 forgets it.
+    func setPage(_ page: Int, chapter: ChapterItem, in manga: MangaItem) {
+        setPage(page, chapterURL: chapter.url, in: manga)
+    }
+
+    func setPage(_ page: Int, chapterURL: String, in manga: MangaItem) {
+        let key = Self.pageKey(chapterURL, in: manga)
+        // A finished chapter reopens from the start; its page is not worth keeping.
+        let finished = progress[manga.id]?.readChapters.contains(chapterURL) ?? false
+        let value = page > 0 && !finished ? page : nil
+        guard pagePositions[key] != value else { return }
+        pagePositions[key] = value
+        Storage.save(pagePositions, to: Self.pagesFile)
+    }
+
+    /// A finished chapter reopens from the start.
+    private func forgetPages(_ chapterURLs: [String], in manga: MangaItem) {
+        var changed = false
+        for url in chapterURLs where pagePositions.removeValue(forKey: Self.pageKey(url, in: manga)) != nil {
+            changed = true
+        }
+        if changed { Storage.save(pagePositions, to: Self.pagesFile) }
     }
 
     var sortedEntries: [LibraryEntry] {
@@ -179,6 +227,7 @@ final class LibraryStore: ObservableObject {
         var value = progress[manga.id] ?? MangaProgress()
         if read {
             value.readChapters.insert(chapter.url)
+            forgetPages([chapter.url], in: manga)
         } else {
             value.readChapters.remove(chapter.url)
         }
@@ -283,9 +332,6 @@ final class LibraryStore: ObservableObject {
     /// A library entry's chapters stamped with their series, for the Novedades list.
     var latestUploads: [(manga: MangaItem, chapter: ChapterItem)] {
         entries.values
-            // An entry can become blocked after the fact (a source adds an adult tag on
-            // refresh); the library hides it, so the activity lists must too.
-            .filter { ContentFilter.isAllowed($0.manga) }
             .flatMap { entry in entry.chapters.map { (manga: entry.manga, chapter: $0) } }
             .filter { $0.1.dateUpload > 0 }
             .sorted { $0.1.dateUpload > $1.1.dateUpload }
@@ -555,6 +601,7 @@ final class LibraryStore: ObservableObject {
         var value = progress[manga.id] ?? MangaProgress()
         if read {
             value.readChapters.formUnion(chapterURLs)
+            forgetPages(chapterURLs, in: manga)
         } else {
             value.readChapters.subtract(chapterURLs)
         }

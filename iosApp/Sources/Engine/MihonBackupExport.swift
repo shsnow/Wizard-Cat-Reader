@@ -114,6 +114,9 @@ enum MihonBackupExport {
                         if progress?.bookmarkedChapters?.contains(chapter.url) == true {
                             backupChapter.field(5, bool: true)
                         }
+                        if let page = library.savedPage(chapterURL: chapter.url, in: manga), page > 0 {
+                            backupChapter.field(6, int64: Int64(page))
+                        }
                         if chapter.dateUpload > 0 {
                             backupChapter.field(8, int64: chapter.dateUpload)
                         }

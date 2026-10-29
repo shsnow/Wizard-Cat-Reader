@@ -305,7 +305,7 @@ struct SourceBrowseView: View {
                     return
                 }
                 let known = Set(items.map(\.id))
-                let fresh = ContentFilter.allowed(result.items).filter { !known.contains($0.id) }
+                let fresh = result.items.filter { !known.contains($0.id) }
                 items.append(contentsOf: fresh)
                 page += 1
                 hasNextPage = result.hasNextPage && !result.items.isEmpty
@@ -386,7 +386,7 @@ private struct GlobalSearchResults: View {
                         .search(query), source: source, installed: installed, page: 1
                     )
                     if Task.isCancelled { return }
-                    results[source.id] = .done(Array(ContentFilter.allowed(page.items).prefix(9)))
+                    results[source.id] = .done(Array(page.items.prefix(9)))
                 } catch {
                     if Task.isCancelled { return }
                     results[source.id] = .failed(error.localizedDescription)

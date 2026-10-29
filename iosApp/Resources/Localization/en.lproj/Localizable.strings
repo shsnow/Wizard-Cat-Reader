@@ -393,3 +393,7 @@
 /* About: contact */
 "Escríbenos: contacto@wizardcatstore.cl" = "Write to us: contacto@wizardcatstore.cl";
 "Más apps de Wizard Cat Store" = "More apps from Wizard Cat Store";
+
+/* Content policy and reading position */
+"Las extensiones marcadas solo para adultos (+18) no se pueden instalar." = "Extensions rated adults-only (18+) cannot be installed.";
+"Ver desde la página 1 (seguías en la %lld)" = "Start from page 1 (you were on page %lld)";

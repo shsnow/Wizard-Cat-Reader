@@ -113,7 +113,7 @@ final class DownloadManager: ObservableObject {
     // MARK: - Queue
 
     func enqueue(_ chapters: [ChapterItem], manga: MangaItem, installed: InstalledExtension) {
-        guard ContentFilter.isAllowed(manga), !manga.isLocal else { return }
+        guard !manga.isLocal else { return }
         for chapter in chapters {
             let job = DownloadJob(manga: manga, chapter: chapter, installed: installed)
             guard downloaded[job.id] == nil, !queue.contains(where: { $0.id == job.id }) else { continue }

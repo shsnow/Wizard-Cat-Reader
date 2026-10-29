@@ -51,8 +51,8 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 >   sin cuentas ni servidores nuestros, compatible con las copias de Mihon en Android.
 > • Estadísticas de lectura calculadas en tu dispositivo.
 >
-> PARA TODA LA FAMILIA
-> • El contenido marcado para adultos se bloquea de forma permanente y sin opción de activarlo.
+> SIN EXTENSIONES +18
+> • Las extensiones calificadas solo para adultos no se pueden instalar.
 >
 > Wizard Cat Reader es software libre (Apache 2.0).
 
@@ -77,8 +77,8 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 > accounts, no servers of ours, compatible with Mihon backups on Android. • On-device
 > reading stats.
 >
-> FAMILY FRIENDLY
-> • Adult-flagged content is permanently blocked, with no way to enable it.
+> NO 18+ EXTENSIONS
+> • Extensions rated adults-only cannot be installed.
 >
 > Wizard Cat Reader is open source (Apache 2.0).
 
@@ -99,8 +99,9 @@ Responder honesto; con fuentes agregadas por el usuario lo defendible es:
 - **Acceso web sin restricciones: SÍ** (las fuentes las agrega el usuario)
 - Todo lo demás: No
 
-→ Resultado esperado: **17+**. (El bloqueo +18 integrado es un plus que se menciona en las
-notas al revisor, pero "acceso web sin restricciones" manda en el cuestionario.)
+→ Resultado esperado: **17+**. Las extensiones +18 no se pueden instalar, pero las mixtas sí
+y sin filtro interno, así que 17+ es la clasificación correcta (y "acceso web sin
+restricciones" ya la exige).
 
 ## App Privacy (sección de privacidad de datos)
 
@@ -112,8 +113,8 @@ notas al revisor, pero "acceso web sin restricciones" manda en el cuestionario.)
 > their own self-hosted servers (such as Komga) or source repositories; the app itself
 > includes, hosts and recommends none.
 >
-> Adult-flagged extensions and series are permanently blocked at multiple levels and this
-> cannot be disabled by the user.
+> Extensions rated adults-only by their repository cannot be installed, and this cannot be
+> changed by the user. The app is rated 17+.
 >
 > To review the app's functionality out of the box: the app ships with a built-in sample
 > comic ("Guía de Wizard Cat", our own illustrated guide) that appears in the Library on

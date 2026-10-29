@@ -24,7 +24,7 @@ struct LibraryView: View {
         [UTType(filenameExtension: "cbz"), .zip].compactMap { $0 }
 
     private var items: [LibraryEntry] {
-        var all = library.sortedEntries.filter { ContentFilter.isAllowed($0.manga) }
+        var all = library.sortedEntries
         if let selectedCategory {
             all = all.filter { $0.categories?.contains(selectedCategory) == true }
         }
@@ -45,7 +45,6 @@ struct LibraryView: View {
     /// Series left halfway, most recent first, for the "Seguir leyendo" row.
     private var continueReading: [LibraryEntry] {
         library.sortedEntries
-            .filter { ContentFilter.isAllowed($0.manga) }
             .filter {
                 library.progress[$0.manga.id]?.lastReadChapter != nil
                     && library.unreadCount(for: $0) > 0

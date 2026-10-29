@@ -13,7 +13,8 @@ embebida (OpenJDK Mobile en modo intérprete) con la capa de compatibilidad Andr
 - [x] Descargas offline (simultáneas configurables, borrar al terminar)
 - [x] Backups `.tachibk`: restaurar **y exportar** (compatible con Mihon)
 - [x] Actividad: novedades de la biblioteca e historial de lectura
-- [x] Contenido +18 bloqueado en todas las capas
+- [x] Extensiones +18 bloqueadas (las mixtas se permiten sin filtro interno)
+- [x] El lector reabre cada capítulo en la página donde quedaste (también vía `lastPageRead` de Mihon)
 - [x] Lector: scroll continuo entre capítulos (webtoon) y autoscroll con velocidad regulable
 - [x] "Seguir leyendo" en la biblioteca y descarga automática de capítulos nuevos
 - [x] Migración de series entre fuentes y filtros de búsqueda por fuente

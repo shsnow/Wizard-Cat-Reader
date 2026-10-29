@@ -136,11 +136,24 @@ struct ReaderView: View {
     /// How many pages ahead to load before they come on screen.
     private let prefetchCount = 4
 
+    /// Webtoon pages currently on screen, "chapterIndex#offset". A plain box, not state:
+    /// it changes constantly and only feeds the saved reading position.
+    @State private var visiblePages = VisiblePages()
+
+    final class VisiblePages {
+        var keys: Set<String> = []
+    }
+
     struct WebtoonSegment: Identifiable {
         let chapterIndex: Int
         let chapterURL: String
         let pages: [PageItem]
         let isOffline: Bool
+        /// The strip starts here when reopening a chapter left halfway; the pages before it
+        /// come back with the "previous pages" button. Starting the strip at the saved page,
+        /// instead of scrolling to it, keeps the position exact: pages above would otherwise
+        /// resize as their images load and push it away.
+        var firstPage = 0
 
         var id: String { chapterURL }
     }
@@ -262,8 +275,13 @@ struct ReaderView: View {
                 ForEach(segments) { segment in
                     if segment.chapterIndex != segments.first?.chapterIndex {
                         segmentDivider(for: segment)
+                    } else if segment.firstPage > 0 {
+                        earlierPagesButton(for: segment)
                     }
-                    ForEach(Array(segment.pages.enumerated()), id: \.element.id) { offset, page in
+                    ForEach(
+                        Array(segment.pages.enumerated()).dropFirst(segment.firstPage),
+                        id: \.element.id
+                    ) { offset, page in
                         ReaderPageView(
                             page: page,
                             manga: context.manga,
@@ -275,7 +293,12 @@ struct ReaderView: View {
                             longPress: pageActions
                         )
                         .onAppear {
+                            visiblePages.keys.insert("\(segment.chapterIndex)#\(offset)")
                             pageAppeared(segment: segment, offset: offset, decodeWidth: decodeWidth)
+                        }
+                        .onDisappear {
+                            visiblePages.keys.remove("\(segment.chapterIndex)#\(offset)")
+                            saveWebtoonPosition(chapterIndex: segment.chapterIndex)
                         }
                     }
                 }
@@ -326,6 +349,43 @@ struct ReaderView: View {
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) { showOverlay.toggle() }
         }
+    }
+
+    /// Shown above a chapter reopened halfway: brings back the pages before the saved one.
+    private func earlierPagesButton(for segment: WebtoonSegment) -> some View {
+        Button {
+            guard let index = segments.firstIndex(where: { $0.id == segment.id }) else { return }
+            segments[index].firstPage = 0
+            visiblePages.keys.removeAll()
+            stripID = UUID()
+        } label: {
+            Label(
+                String(
+                    format: NSLocalizedString("Ver desde la página 1 (seguías en la %lld)", comment: ""),
+                    segment.firstPage + 1
+                ),
+                systemImage: "arrow.up"
+            )
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(controlColor.opacity(0.8))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(controlColor.opacity(0.1), in: Capsule())
+        }
+        .padding(.vertical, 20)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// The topmost page on screen is the one being read: that is what reopening restores.
+    private func saveWebtoonPosition(chapterIndex index: Int) {
+        guard context.chapters.indices.contains(index) else { return }
+        let prefix = "\(index)#"
+        let offsets = visiblePages.keys.compactMap { key -> Int? in
+            guard key.hasPrefix(prefix) else { return nil }
+            return Int(key.dropFirst(prefix.count))
+        }
+        guard let top = offsets.min() else { return }
+        library.setPage(top, chapter: context.chapters[index], in: context.manga)
     }
 
     private func segmentDivider(for segment: WebtoonSegment) -> some View {
@@ -390,6 +450,7 @@ struct ReaderView: View {
             library.markOpened(context.chapters[segment.chapterIndex], in: context.manga)
         }
         currentPage = offset
+        saveWebtoonPosition(chapterIndex: segment.chapterIndex)
         prefetch(after: offset, in: segment.pages, decodeWidth: decodeWidth)
         if offset >= segment.pages.count - 1 {
             markRead(segment: segment)
@@ -558,6 +619,9 @@ struct ReaderView: View {
         .id("\(chapter.url)-\(mode.rawValue)-\(double)-\(settings.trimPageBorders)")
         .onChange(of: currentPage) { value in
             prefetch(after: value, in: pages, decodeWidth: decodeWidth)
+            if value < pages.count {
+                library.setPage(value, chapter: chapter, in: context.manga)
+            }
             if !pages.isEmpty, value >= pages.count || spreads.last?.contains(value) == true { markRead() }
         }
         .onAppear {
@@ -788,12 +852,15 @@ struct ReaderView: View {
                 // Keep the reading position across mode changes.
                 currentPage = pages.isEmpty ? 0 : min(position, pages.count - 1)
                 // The strip restarts from the chapter being read.
+                // The strip starts on the page being read, so switching to webtoon keeps it.
+                visiblePages.keys.removeAll()
                 segments = pages.isEmpty ? [] : [
                     WebtoonSegment(
                         chapterIndex: chapterIndex,
                         chapterURL: chapter.url,
                         pages: pages,
-                        isOffline: isOffline
+                        isOffline: isOffline,
+                        firstPage: value == .webtoon ? currentPage : 0
                     )
                 ]
                 nextError = nil
@@ -818,6 +885,7 @@ struct ReaderView: View {
         pages = []
         segments = []
         currentPage = 0
+        visiblePages.keys.removeAll()
         zoom = 1
         pan = 0
         stripID = UUID()
@@ -829,10 +897,7 @@ struct ReaderView: View {
         // Downloaded chapters open from disk, without the network or the extension engine.
         if let local = downloads.localPages(manga: context.manga, chapter: target) {
             isOffline = true
-            pages = local
-            segments = [
-                WebtoonSegment(chapterIndex: chapterIndex, chapterURL: target.url, pages: local, isOffline: true)
-            ]
+            showFirst(local, of: target, isOffline: true)
             return
         }
         // Imported chapters: list and extract from the archive, never the engine.
@@ -841,10 +906,7 @@ struct ReaderView: View {
             do {
                 let loaded = try await Task.detached { try LocalStore.pages(for: target) }.value
                 guard target == chapter else { return }
-                pages = loaded
-                segments = [
-                    WebtoonSegment(chapterIndex: chapterIndex, chapterURL: target.url, pages: loaded, isOffline: true)
-                ]
+                showFirst(loaded, of: target, isOffline: true)
             } catch {
                 self.error = error.localizedDescription
             }
@@ -859,13 +921,31 @@ struct ReaderView: View {
             if loaded.isEmpty {
                 error = NSLocalizedString("Este capítulo no tiene páginas.", comment: "")
             }
-            pages = loaded
-            segments = loaded.isEmpty ? [] : [
-                WebtoonSegment(chapterIndex: chapterIndex, chapterURL: target.url, pages: loaded, isOffline: false)
-            ]
+            showFirst(loaded, of: target, isOffline: false)
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    /// Puts a freshly loaded chapter on screen, on the page it was left on.
+    private func showFirst(_ loaded: [PageItem], of target: ChapterItem, isOffline offline: Bool) {
+        pages = loaded
+        guard !loaded.isEmpty else {
+            segments = []
+            return
+        }
+        var resume = library.resumePage(for: target, in: context.manga)
+        if resume >= loaded.count { resume = 0 }
+        currentPage = resume
+        segments = [
+            WebtoonSegment(
+                chapterIndex: chapterIndex,
+                chapterURL: target.url,
+                pages: loaded,
+                isOffline: offline,
+                firstPage: resume
+            )
+        ]
     }
 
     /// Paged mode: the chapter on screen was finished.

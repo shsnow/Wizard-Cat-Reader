@@ -129,7 +129,7 @@ struct SettingsView: View {
                 Text("Acerca de")
             } footer: {
                 Label(
-                    "Wizard Cat Reader es para toda la familia: las extensiones y series para adultos se bloquean siempre.",
+                    "Las extensiones marcadas solo para adultos (+18) no se pueden instalar.",
                     systemImage: "checkmark.shield"
                 )
             }

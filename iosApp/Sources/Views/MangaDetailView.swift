@@ -93,17 +93,7 @@ struct MangaDetailView: View {
     }
 
     var body: some View {
-        Group {
-            if ContentFilter.isAllowed(manga) {
-                content
-            } else {
-                EmptyStateView(
-                    symbol: "hand.raised",
-                    title: "Contenido no disponible",
-                    message: "Wizard Cat Reader es una app para toda la familia y no muestra contenido para adultos."
-                )
-            }
-        }
+        content
         .navigationTitle(manga.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {

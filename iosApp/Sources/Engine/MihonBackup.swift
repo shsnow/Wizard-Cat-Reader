@@ -32,6 +32,8 @@ struct MihonBackup {
         var scanlator: String?
         var read = false
         var bookmark = false
+        /// Index of the page the chapter was left on (0 = start).
+        var lastPageRead: Int64 = 0
         var dateUpload: Int64 = 0
         var number: Float?
         var sourceOrder = 0
@@ -149,6 +151,7 @@ struct MihonBackup {
                 case (3, .bytes(let value)): chapter.scanlator = string(value)
                 case (4, .varint(let value)): chapter.read = value != 0
                 case (5, .varint(let value)): chapter.bookmark = value != 0
+                case (6, .varint(let value)): chapter.lastPageRead = Int64(bitPattern: value)
                 case (8, .varint(let value)): chapter.dateUpload = Int64(bitPattern: value)
                 case (9, .fixed32(let value)):
                     let number = Float(bitPattern: value)
@@ -231,7 +234,6 @@ struct MihonImportSummary {
     var totalFavorites = 0
     var added = 0
     var merged = 0
-    var skippedAdult = 0
     var missingSources: [String] = []
 
     var text: String {
@@ -247,13 +249,6 @@ struct MihonImportSummary {
             }
             line += local(", con sus capítulos leídos y tu progreso.")
             lines.append(line)
-        }
-        if skippedAdult > 0 {
-            lines.append(
-                skippedAdult == 1
-                    ? local("1 serie para adultos se omitió.")
-                    : String(format: local("%lld series para adultos se omitieron."), skippedAdult)
-            )
         }
         if !missingSources.isEmpty {
             var shown = missingSources.prefix(6).joined(separator: ", ")
@@ -326,10 +321,6 @@ enum MihonBackupImporter {
                 status: manga.status
             )
             guard !item.url.isEmpty, !item.title.isEmpty else { continue }
-            guard ContentFilter.isAllowed(item) else {
-                summary.skippedAdult += 1
-                continue
-            }
             if !installedSources.contains(manga.source) {
                 let name = backup.sourceNames[manga.source] ?? ""
                 missing.insert(name.isEmpty ? "fuente \(manga.source)" : name)
@@ -361,6 +352,13 @@ enum MihonBackupImporter {
             let addedAt = manga.dateAdded > 0
                 ? Date(timeIntervalSince1970: TimeInterval(manga.dateAdded) / 1000)
                 : Date()
+            // Chapters left halfway reopen on their page, unless this device already
+            // has its own position for them.
+            for chapter in ordered where !chapter.read && chapter.lastPageRead > 0 {
+                if library.savedPage(chapterURL: chapter.url, in: item) == nil {
+                    library.setPage(Int(chapter.lastPageRead), chapterURL: chapter.url, in: item)
+                }
+            }
             items.append(
                 BackupImportItem(
                     entry: LibraryEntry(
@@ -374,7 +372,7 @@ enum MihonBackupImporter {
             )
         }
 
-        guard !items.isEmpty || summary.skippedAdult > 0 else {
+        guard !items.isEmpty else {
             throw MihonBackupError.noFavorites
         }
         let result = library.applyImport(items)

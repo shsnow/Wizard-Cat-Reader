@@ -159,10 +159,10 @@ final class ExtensionManager: ObservableObject {
             try? FileManager.default.removeItem(at: destination)
             try FileManager.default.moveItem(at: temporary, to: destination)
 
-            // The repository index can be wrong or edited; the JAR's own manifest is checked
-            // too. Allowlisted MIXED extensions inherit `nsfw = 1` in their manifest from the
-            // binary flag, so for them the per-series keyword filter does the blocking instead.
-            if !ContentFilter.isMixedException(item.packageName),
+            // A repository that does not rate its extensions leaves only the JAR's manifest
+            // to go by. Rated ones are trusted: MIXED extensions carry the same manifest flag
+            // as NSFW ones, so checking it there would block every MIXED extension.
+            if item.contentWarning == 0,
                try await JVMEngine.shared.declaresAdultContent(jarURL: destination) {
                 throw ExtensionBlockedError()
             }

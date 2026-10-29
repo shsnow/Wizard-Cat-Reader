@@ -147,6 +147,8 @@ struct CatalogExtension: Hashable, Identifiable {
     var jarURL: URL
     var sources: [CatalogSource]
     var repositoryURL: URL
+    /// Mihon's rating: 0 unspecified, 1 safe, 2 mixed, 3 NSFW.
+    var contentWarning: UInt64 = 0
 
     var id: String { packageName }
 
