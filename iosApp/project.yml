@@ -69,6 +69,10 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleIconName: AppIcon
         ITSAppUsesNonExemptEncryption: false
+        # Library updates keep running after leaving the app (iOS 26 continued processing).
+        # Each run submits "<bundle id>.libraryupdate.<uuid>".
+        BGTaskSchedulerPermittedIdentifiers:
+          - "$(PRODUCT_BUNDLE_IDENTIFIER).libraryupdate.*"
         LSRequiresIPhoneOS: true
         UILaunchScreen:
           UIColorName: LaunchBackground

@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import UIKit
 
 /// Refreshes every library entry against its source, one at a time — the extension engine is
 /// serial anyway — and remembers which chapters are new so the Novedades list can flag them.
@@ -17,6 +18,9 @@ final class LibraryUpdater: ObservableObject {
 
     private var task: Task<Void, Never>?
     private var cancelRequested = false
+    /// Set when iOS, not the user, stopped the update: what was left resumes on return.
+    private var stoppedByBackground = false
+    private static let pendingKey = "updaterPendingIDs"
 
     private init() {
         // The "Nuevo" labels and the last-update summary survive app restarts.
@@ -52,14 +56,36 @@ final class LibraryUpdater: ObservableObject {
         guard !entries.isEmpty else { return }
         isRefreshing = true
         cancelRequested = false
+        stoppedByBackground = false
         completed = 0
         newChapters = 0
         total = entries.count
         var discovered: Set<String> = []
+        // Until the run ends, the entries not yet checked are on disk: if iOS ends the app
+        // mid-update, the next launch picks up from there.
+        var pending = entries.map(\.manga.id)
+        UserDefaults.standard.set(pending, forKey: Self.pendingKey)
+
+        // Keeps going when the user leaves the app (on iOS 26 with progress in the system UI).
+        let background = BackgroundRun(
+            title: NSLocalizedString("Actualizando biblioteca", comment: ""),
+            subtitle: progressText(done: 0, of: entries.count),
+            total: entries.count
+        ) { [weak self] in
+            self?.stoppedByBackground = true
+            self?.cancelRequested = true
+        }
 
         for entry in entries {
             if Task.isCancelled || cancelRequested { break }
-            defer { completed += 1 }
+            defer {
+                completed += 1
+                pending.removeFirst()
+                UserDefaults.standard.set(pending, forKey: Self.pendingKey)
+                background.update(
+                    completed: completed, subtitle: progressText(done: completed, of: total)
+                )
+            }
             // Imported series have no site to check.
             if entry.manga.isLocal { continue }
             guard let installed = extensions.extensionFor(sourceId: entry.manga.sourceId) else {
@@ -121,12 +147,42 @@ final class LibraryUpdater: ObservableObject {
             UserDefaults.standard.set(Array(discovered), forKey: "updaterLastNewURLs")
         }
         isRefreshing = false
+        background.finish(success: !cancelRequested)
+        if !stoppedByBackground {
+            // Finished, or cancelled on purpose: nothing to resume.
+            UserDefaults.standard.removeObject(forKey: Self.pendingKey)
+        }
         lastFinished = Date()
         UserDefaults.standard.set(lastFinished, forKey: "updaterLastFinished")
+        // Stopped in the background but the user is already back: carry on right away.
+        if stoppedByBackground && UIApplication.shared.applicationState == .active {
+            resumeIfInterrupted(library: library, extensions: extensions)
+        }
+    }
+
+    /// Picks up an update that iOS stopped in the background (or that was running when the
+    /// app was closed), with only the series still unchecked.
+    func resumeIfInterrupted(library: LibraryStore, extensions: ExtensionManager) {
+        guard !isRefreshing,
+              let stored = UserDefaults.standard.array(forKey: Self.pendingKey) as? [String]
+        else { return }
+        // Series removed from the library since then have nothing left to check.
+        let inLibrary = Set(library.sortedEntries.map(\.manga.id))
+        let ids = Set(stored).intersection(inLibrary)
+        guard !ids.isEmpty else {
+            UserDefaults.standard.removeObject(forKey: Self.pendingKey)
+            return
+        }
+        refreshAll(library: library, extensions: extensions, only: ids)
+    }
+
+    private func progressText(done: Int, of total: Int) -> String {
+        String(format: NSLocalizedString("%lld de %lld series", comment: ""), done, total)
     }
 
     func cancel() {
         cancelRequested = true
+        stoppedByBackground = false
         task?.cancel()
     }
 }

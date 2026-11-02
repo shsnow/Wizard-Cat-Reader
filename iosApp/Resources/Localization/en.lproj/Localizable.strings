@@ -119,6 +119,9 @@
 "¿Borrar todo el historial de lectura?" = "Clear all reading history?";
 "Actualizar biblioteca" = "Update library";
 "Actualizando %lld de %lld…" = "Updating %lld of %lld…";
+"Actualizando biblioteca" = "Updating library";
+"%lld de %lld series" = "%lld of %lld series";
+"%lld de %lld" = "%lld of %lld";
 "Descargando 1 capítulo…" = "Downloading 1 chapter…";
 "Descargando %lld capítulos…" = "Downloading %lld chapters…";
 "Sin capítulos nuevos (%@)." = "No new chapters (%@).";

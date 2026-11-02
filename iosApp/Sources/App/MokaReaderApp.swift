@@ -105,6 +105,8 @@ struct RootView: View {
             // The bundled guide comic, so a fresh install has something to read.
             LocalStore.shared.seedSampleIfNeeded(library: library)
             updateOnLaunchIfDue()
+            // An update the app was closed in the middle of carries on where it stopped.
+            LibraryUpdater.shared.resumeIfInterrupted(library: library, extensions: extensions)
             // A fresh catalog keeps the Extensiones update badge honest.
             Task { await extensions.refreshCatalogIfStale() }
             // Cold start is not guaranteed to pass through the .active transition.
@@ -116,6 +118,8 @@ struct RootView: View {
             switch phase {
                 case .active:
                     Task { await SyncManager.shared.sync(library: library, extensions: extensions) }
+                    // iOS may have stopped an update while the app was away: finish it now.
+                    LibraryUpdater.shared.resumeIfInterrupted(library: library, extensions: extensions)
                 case .inactive:
                     // Pending JSON writes go out before iOS can suspend or kill the app.
                     Storage.flush()

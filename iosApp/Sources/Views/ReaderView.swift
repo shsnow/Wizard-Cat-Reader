@@ -122,6 +122,10 @@ struct ReaderView: View {
     @StateObject private var autoScroller = AutoScroller()
     @State private var isAutoScrolling = false
 
+    /// The page under the slider's thumb while it is being dragged; nil otherwise.
+    @State private var scrubPage: Double?
+    private static let scrubHaptics = UISelectionFeedbackGenerator()
+
     /// Brief feedback after a page action (saved, cover set).
     @State private var toast: String?
     @State private var toastTask: Task<Void, Never>?
@@ -756,6 +760,8 @@ struct ReaderView: View {
                     .padding(.top, 10)
                 }
 
+                pageSlider
+
                 HStack(spacing: 18) {
                     Button {
                         if let target = targetIndex(from: chapterIndex, direction: -1) {
@@ -783,7 +789,7 @@ struct ReaderView: View {
                     }
 
                     if !pages.isEmpty {
-                        Text("\(min(currentPage + 1, pages.count)) / \(pages.count)")
+                        Text("\(displayedPage + 1) / \(pages.count)")
                             .font(.footnote.monospacedDigit())
                     }
 
@@ -830,6 +836,90 @@ struct ReaderView: View {
             .background(.black.opacity(0.75))
         }
         .transition(.opacity)
+    }
+
+    /// The page the counters show: the slider's while dragging, otherwise the one being read.
+    private var displayedPage: Int {
+        if let scrubPage { return Int(scrubPage.rounded()) }
+        return min(currentPage, max(pages.count - 1, 0))
+    }
+
+    /// Drag to jump several pages at once, like Mihon's reader. The jump happens on release,
+    /// so the pages in between are never loaded.
+    @ViewBuilder
+    private var pageSlider: some View {
+        if pages.count > 1 {
+            HStack(spacing: 12) {
+                Text("\(displayedPage + 1)")
+                    .frame(minWidth: 30)
+                Slider(
+                    value: Binding(
+                        get: { Double(displayedPage) },
+                        set: { value in
+                            if Int(value.rounded()) != displayedPage {
+                                Self.scrubHaptics.selectionChanged()
+                            }
+                            scrubPage = value
+                        }
+                    ),
+                    in: 0...Double(pages.count - 1),
+                    step: 1,
+                    onEditingChanged: { editing in
+                        if editing {
+                            Self.scrubHaptics.prepare()
+                        } else if let target = scrubPage {
+                            jump(to: Int(target.rounded()))
+                            scrubPage = nil
+                        }
+                    }
+                )
+                .tint(.moka)
+                .accessibilityLabel("Página")
+                .accessibilityValue(
+                    String(
+                        format: NSLocalizedString("%lld de %lld", comment: ""),
+                        displayedPage + 1, pages.count
+                    )
+                )
+                Text("\(pages.count)")
+                    .frame(minWidth: 30)
+            }
+            .font(.footnote.monospacedDigit())
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            // In right-to-left reading the start of the chapter sits on the right.
+            .environment(\.layoutDirection, mode == .rightToLeft ? .rightToLeft : .leftToRight)
+        }
+    }
+
+    /// Moves to `page` of the chapter on screen without walking through the pages between.
+    private func jump(to page: Int) {
+        guard !pages.isEmpty else { return }
+        let target = min(max(page, 0), pages.count - 1)
+        guard target != currentPage else { return }
+        if mode == .webtoon {
+            // Same as reopening a chapter halfway: the strip restarts on the target page,
+            // which keeps the position exact while the pages above load.
+            stopAutoScroll()
+            currentPage = target
+            zoom = 1
+            pan = 0
+            visiblePages.keys.removeAll()
+            segments = [
+                WebtoonSegment(
+                    chapterIndex: chapterIndex,
+                    chapterURL: chapter.url,
+                    pages: pages,
+                    isOffline: isOffline,
+                    firstPage: target
+                )
+            ]
+            nextError = nil
+            stripID = UUID()
+            library.setPage(target, total: pages.count, chapter: chapter, in: context.manga)
+        } else {
+            currentPage = target
+        }
     }
 
     private var speedBinding: Binding<Double> {
