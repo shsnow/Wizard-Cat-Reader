@@ -1,0 +1,77 @@
+{
+  "app": "READER",
+  "shots": [
+    {
+      "file": "01.png",
+      "theme": "light",
+      "en": {
+        "title": "Your library, under one hat",
+        "subtitle": "Search, sort and spot unread chapters"
+      },
+      "es": {
+        "title": "Tu biblioteca, bajo un sombrero",
+        "subtitle": "Busca, ordena y ve los capítulos sin leer"
+      }
+    },
+    {
+      "file": "02.png",
+      "theme": "dark",
+      "en": {
+        "title": "Made for long scrolls",
+        "subtitle": "Webtoon mode, auto‑scroll and paged reading"
+      },
+      "es": {
+        "title": "Hecho para leer de corrido",
+        "subtitle": "Modo webtoon, autodesplazamiento y páginas"
+      }
+    },
+    {
+      "file": "03.png",
+      "theme": "light",
+      "en": {
+        "title": "Every series at a glance",
+        "subtitle": "Cover, chapters and one tap to start reading"
+      },
+      "es": {
+        "title": "Cada serie, de un vistazo",
+        "subtitle": "Portada, capítulos y un toque para empezar a leer"
+      }
+    },
+    {
+      "file": "04.png",
+      "theme": "light",
+      "en": {
+        "title": "New chapters, found for you",
+        "subtitle": "Library updates with optional auto-download"
+      },
+      "es": {
+        "title": "Capítulos nuevos, a la vista",
+        "subtitle": "Actualiza tu biblioteca y descarga lo nuevo"
+      }
+    },
+    {
+      "file": "05.png",
+      "theme": "light",
+      "en": {
+        "title": "Your sources, your rules",
+        "subtitle": "None come built in. Add only the repositories you trust"
+      },
+      "es": {
+        "title": "Tus fuentes, tus reglas",
+        "subtitle": "No trae ninguna. Agrega solo repositorios de confianza"
+      }
+    },
+    {
+      "file": "06.png",
+      "theme": "light",
+      "en": {
+        "title": "Free. No ads, no accounts",
+        "subtitle": "Themes, app icons, backups and reading stats"
+      },
+      "es": {
+        "title": "Gratis, sin anuncios",
+        "subtitle": "Sin cuentas. Temas, íconos, respaldos y estadísticas"
+      }
+    }
+  ]
+}
