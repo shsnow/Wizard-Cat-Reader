@@ -80,7 +80,7 @@ jobs:
         if: steps.runtime-cache.outputs.cache-hit != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.0"
+          xcode-version: "16.4"
 
       - name: Set up Java 24 boot JDK
         if: steps.runtime-cache.outputs.cache-hit != 'true'
