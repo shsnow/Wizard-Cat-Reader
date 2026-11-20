@@ -651,15 +651,5 @@ extension Notification.Name {
     static let sourceCookiesChanged = Notification.Name("cl.jonas.wizardcat.sourceCookiesChanged")
 }
 
-/// The JVM compatibility layer calls this to drive a WKWebView (Cloudflare challenges, sites
-/// that render with JavaScript). MokaReader does not ship that bridge yet; answering "unavailable"
-/// lets those extensions fail with a readable error instead of an unresolved symbol.
-@_cdecl("wizardcat_webkit_command")
-func wizardWebKitCommand(
-    _ operation: UnsafePointer<CChar>?,
-    _ handle: Int64,
-    _ argument1: UnsafePointer<CChar>?,
-    _ argument2: UnsafePointer<CChar>?
-) -> UnsafeMutablePointer<CChar>? {
-    strdup("__UNAVAILABLE__WKWebView bridge is not installed")
-}
+// wizardcat_webkit_command lives in WebKitBridge.swift.
+

@@ -71,6 +71,16 @@ WJBStatus wjb_gzip_compress(
 
 void wjb_buffer_free(unsigned char *value);
 
+/// Delivers a WKWebView event to app.tachiaz.compat.NativeBridge.dispatchWebKitEvent
+/// from any thread (attaching and detaching it). Returns the Java result
+/// (malloc'd, free with wjb_string_free) or NULL when the VM is not ready.
+char *wjb_webkit_dispatch_event(
+    long long handle,
+    const char *event,
+    const char *argument1,
+    const char *argument2
+);
+
 #ifdef __cplusplus
 }
 #endif

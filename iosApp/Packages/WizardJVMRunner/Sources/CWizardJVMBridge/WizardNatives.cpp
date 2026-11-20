@@ -35,6 +35,12 @@ extern "C" char *wizardcat_webkit_command(
 
 namespace {
 
+// Set once natives are registered: the reverse path WebKit uses to reach
+// NativeBridge.dispatchWebKitEvent from threads the VM did not create.
+JavaVM *g_vm = nullptr;
+jclass g_bridge_class = nullptr;
+jmethodID g_dispatch_webkit_event = nullptr;
+
 constexpr const char *kWebKitUnavailable =
     "__UNAVAILABLE__WKWebView bridge is not installed";
 
@@ -1067,6 +1073,20 @@ bool wjb_register_natives(JNIEnv *environment, std::string &error) {
     jint status = environment->RegisterNatives(
         bridge, methods, sizeof(methods) / sizeof(methods[0])
     );
+    if (status == JNI_OK && g_bridge_class == nullptr) {
+        // Optional: without it the WebView bridge only loses its callbacks.
+        environment->GetJavaVM(&g_vm);
+        g_dispatch_webkit_event = environment->GetStaticMethodID(
+            bridge,
+            "dispatchWebKitEvent",
+            "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"
+        );
+        if (g_dispatch_webkit_event == nullptr) {
+            environment->ExceptionClear();
+        } else {
+            g_bridge_class = static_cast<jclass>(environment->NewGlobalRef(bridge));
+        }
+    }
     environment->DeleteLocalRef(bridge);
     if (status != JNI_OK) {
         if (environment->ExceptionCheck()) {
@@ -1076,4 +1096,58 @@ bool wjb_register_natives(JNIEnv *environment, std::string &error) {
         return false;
     }
     return true;
+}
+
+// MARK: - WebKit events (Swift -> Java)
+
+extern "C" char *wjb_webkit_dispatch_event(
+    long long handle,
+    const char *event,
+    const char *argument1,
+    const char *argument2
+) {
+    if (g_vm == nullptr || g_bridge_class == nullptr || g_dispatch_webkit_event == nullptr) {
+        return nullptr;
+    }
+    JNIEnv *environment = nullptr;
+    bool attached = false;
+    jint status = g_vm->GetEnv(reinterpret_cast<void **>(&environment), JNI_VERSION_1_8);
+    if (status == JNI_EDETACHED) {
+        JavaVMAttachArgs arguments{JNI_VERSION_1_8, const_cast<char *>("wizard-webkit"), nullptr};
+        if (g_vm->AttachCurrentThread(reinterpret_cast<void **>(&environment), &arguments) != JNI_OK) {
+            return nullptr;
+        }
+        attached = true;
+    } else if (status != JNI_OK) {
+        return nullptr;
+    }
+
+    char *output = nullptr;
+    if (environment->PushLocalFrame(8) == JNI_OK) {
+        jstring eventText = wjb_java_string(environment, event == nullptr ? "" : event);
+        jstring first = argument1 == nullptr ? nullptr : wjb_java_string(environment, argument1);
+        jstring second = argument2 == nullptr ? nullptr : wjb_java_string(environment, argument2);
+        auto result = static_cast<jstring>(environment->CallStaticObjectMethod(
+            g_bridge_class,
+            g_dispatch_webkit_event,
+            static_cast<jlong>(handle),
+            eventText,
+            first,
+            second
+        ));
+        if (environment->ExceptionCheck()) {
+            environment->ExceptionClear();
+            output = strdup("__ERROR__Java exception in WebKit callback");
+        } else if (result != nullptr) {
+            output = strdup(wjb_std_string(environment, result).c_str());
+        }
+        environment->PopLocalFrame(nullptr);
+    } else {
+        environment->ExceptionClear();
+    }
+    // GCD threads are reused for unrelated work: never leave them attached.
+    if (attached) {
+        g_vm->DetachCurrentThread();
+    }
+    return output;
 }
