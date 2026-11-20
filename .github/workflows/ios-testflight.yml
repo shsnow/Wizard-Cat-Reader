@@ -4,7 +4,7 @@ name: "iOS → TestFlight (firmado)"
 # Solo se ejecuta a mano desde la pestaña Actions.
 #
 # Tres etapas: los jars del runtime JVM en Linux (barato), OpenJDK Mobile desde fuente en
-# macos-14 (~45-60 min la primera vez, después queda en caché) y la app en macos-26.
+# macos-15 (~45-60 min la primera vez, después queda en caché) y la app en macos-26.
 #
 # Secrets: APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_BASE64,
 #          BUILD_CERT_P12_BASE64 y CERT_P12_PASSWORD (los produce el workflow
@@ -60,7 +60,7 @@ jobs:
 
   openjdk:
     name: OpenJDK runtime
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -80,7 +80,7 @@ jobs:
         if: steps.runtime-cache.outputs.cache-hit != 'true'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "15.4"
+          xcode-version: "16.0"
 
       - name: Set up Java 24 boot JDK
         if: steps.runtime-cache.outputs.cache-hit != 'true'
