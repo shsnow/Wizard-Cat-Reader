@@ -47,8 +47,8 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 >   La app no incluye, aloja ni recomienda contenido: tú decides qué agregar.
 > • Importa tus propios cómics CBZ/ZIP desde la app Archivos y léelos sin conexión.
 > • Copias de seguridad en formato abierto .tachibk, para llevarte tu biblioteca contigo.
-> • Sincroniza entre dispositivos con tu propia nube (iCloud Drive, Google Drive, Dropbox…):
->   sin cuentas ni servidores nuestros, compatible con las copias de Mihon en Android.
+> • Sincroniza entre dispositivos con tu propia carpeta en la nube (iCloud Drive o cualquier
+>   ubicación de la app Archivos): sin cuentas ni servidores nuestros.
 > • Estadísticas de lectura calculadas en tu dispositivo.
 >
 > CONTROL PARENTAL
@@ -73,8 +73,8 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 > • Connect your own sources and self-hosted servers (e.g. Komga on your local network). The
 > app includes, hosts and recommends no content — you decide what to add. • Import your own
 > CBZ/ZIP comics from the Files app and read them offline. • Open .tachibk backups. • Sync
-> across devices through your own cloud folder (iCloud Drive, Google Drive, Dropbox…) — no
-> accounts, no servers of ours, compatible with Mihon backups on Android. • On-device
+> across devices through your own cloud folder (iCloud Drive or any location in the Files
+> app) — no accounts, no servers of ours. • On-device
 > reading stats.
 >
 > PARENTAL CONTROL
@@ -88,7 +88,8 @@ Material listo para copiar/pegar en App Store Connect. Lo que va entre ⟨ ⟩ s
 manga,manhwa,webtoon,comic,lector,reader,komga,biblioteca,offline,descargas,tachibk
 ```
 
-(No incluir nombres de otras apps — Apple rechaza metadata con marcas de terceros, regla 2.3.7.)
+(No incluir nombres de otras apps ni plataformas — Apple rechaza metadata con marcas de terceros, regla 2.3.7,
+y menciones a Android, regla 2.3.10: rechazo de la 1.1 el 6 nov 2026.)
 
 ## Clasificación por edades (cuestionario)
 
