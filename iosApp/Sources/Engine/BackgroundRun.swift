@@ -10,6 +10,7 @@ import UIKit
 @MainActor
 final class BackgroundRun {
     private let title: String
+    private let kind: String
     private let onExpire: () -> Void
     private var total: Int64
     private var completed: Int64 = 0
@@ -19,7 +20,13 @@ final class BackgroundRun {
     /// The BGContinuedProcessingTask, kept untyped so the class builds for iOS 16.
     private var continued: AnyObject?
 
-    init(title: String, subtitle: String, total: Int, onExpire: @escaping () -> Void) {
+    /// `kind` names the job in the task identifier ("<bundle id>.<kind>.<uuid>"); it must have a
+    /// matching entry in BGTaskSchedulerPermittedIdentifiers.
+    init(
+        kind: String = "libraryupdate",
+        title: String, subtitle: String, total: Int, onExpire: @escaping () -> Void
+    ) {
+        self.kind = kind
         self.title = title
         self.subtitle = subtitle
         self.total = Int64(max(total, 1))
@@ -42,6 +49,15 @@ final class BackgroundRun {
         }
     }
 
+    /// For jobs whose size changes while they run (a download queue that keeps growing).
+    func update(completed: Int, total: Int, subtitle: String) {
+        self.total = Int64(max(total, 1))
+        if #available(iOS 26.0, *), let task = continued as? BGContinuedProcessingTask {
+            task.progress.totalUnitCount = self.total
+        }
+        update(completed: completed, subtitle: subtitle)
+    }
+
     func finish(success: Bool) {
         guard !finished else { return }
         finished = true
@@ -58,9 +74,9 @@ final class BackgroundRun {
     @available(iOS 26.0, *)
     private func submitContinued() {
         guard let bundleID = Bundle.main.bundleIdentifier else { return }
-        // Must match BGTaskSchedulerPermittedIdentifiers ("<bundle id>.libraryupdate.*").
+        // Must match BGTaskSchedulerPermittedIdentifiers ("<bundle id>.<kind>.*").
         // Each run gets its own identifier, registered right before it is submitted.
-        let identifier = "\(bundleID).libraryupdate.\(UUID().uuidString)"
+        let identifier = "\(bundleID).\(kind).\(UUID().uuidString)"
         let registered = BGTaskScheduler.shared.register(
             forTaskWithIdentifier: identifier, using: .main
         ) { [weak self] task in

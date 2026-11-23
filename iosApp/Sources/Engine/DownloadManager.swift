@@ -13,7 +13,7 @@ struct DownloadedChapter: Codable, Hashable {
     var date: Date
 }
 
-struct DownloadJob: Identifiable, Hashable {
+struct DownloadJob: Identifiable, Hashable, Codable {
     let manga: MangaItem
     let chapter: ChapterItem
     let installed: InstalledExtension
@@ -31,8 +31,9 @@ enum DownloadState: Equatable {
 
 /// Saves chapters to disk so they can be read without a connection.
 ///
-/// Downloads run one chapter at a time while the app is open; iOS grants a short extra window
-/// when the app goes to the background, and the queue resumes from where it stopped.
+/// Downloads run one chapter at a time and keep going after the user leaves the app (on iOS 26
+/// with progress in the system UI, earlier only for a short window). The queue is kept on disk:
+/// when iOS stops it, it resumes on return or on the next launch.
 @MainActor
 final class DownloadManager: ObservableObject {
     static let shared = DownloadManager()
@@ -46,9 +47,15 @@ final class DownloadManager: ObservableObject {
 
     private var worker: Task<Void, Never>?
     private var currentJob: String?
-    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    /// Keeps the queue running in the background; one per stretch of work, nil when idle.
+    private var run: BackgroundRun?
+    /// Chapters finished since `run` started, for its progress.
+    private var runDone = 0
+    /// Set when iOS ends the background time: the current chapter stays queued.
+    private var pausedByBackground = false
 
     private static let indexFile = "downloads.json"
+    private static let queueFile = "downloadQueue.json"
 
     static var root: URL {
         var url = Storage.supportDirectory.appendingPathComponent("Downloads", isDirectory: true)
@@ -121,6 +128,8 @@ final class DownloadManager: ObservableObject {
             failedJobs.removeAll { $0.id == job.id }
             queue.append(job)
         }
+        saveQueue()
+        reportProgress()
         startIfNeeded()
     }
 
@@ -136,6 +145,8 @@ final class DownloadManager: ObservableObject {
     func cancel(_ job: DownloadJob) {
         queue.removeAll { $0.id == job.id }
         progress[job.id] = nil
+        saveQueue()
+        reportProgress()
         if currentJob == job.id {
             worker?.cancel()
         }
@@ -144,6 +155,7 @@ final class DownloadManager: ObservableObject {
     func cancelAll() {
         queue.removeAll()
         progress.removeAll()
+        saveQueue()
         worker?.cancel()
     }
 
@@ -168,41 +180,115 @@ final class DownloadManager: ObservableObject {
 
     // MARK: - Worker
 
+    /// Picks up downloads iOS stopped in the background, or that were queued when the app
+    /// closed. Each job takes the extension as installed now (it may have been updated); jobs
+    /// whose extension is gone are dropped.
+    func resumeIfInterrupted(extensions: ExtensionManager) {
+        guard worker == nil else { return }
+        let stored = queue.isEmpty
+            ? (Storage.load([DownloadJob].self, from: Self.queueFile) ?? [])
+            : queue
+        var seen: Set<String> = []
+        queue = stored.compactMap { job in
+            guard downloaded[job.id] == nil, seen.insert(job.id).inserted,
+                  let installed = extensions.extensionFor(sourceId: job.manga.sourceId)
+            else { return nil }
+            return DownloadJob(manga: job.manga, chapter: job.chapter, installed: installed)
+        }
+        saveQueue()
+        startIfNeeded()
+    }
+
     private func startIfNeeded() {
         guard worker == nil, !queue.isEmpty else { return }
-        beginBackgroundWindow()
+        pausedByBackground = false
+        if run == nil {
+            runDone = 0
+            run = BackgroundRun(
+                kind: "downloads",
+                title: NSLocalizedString("Descargando capítulos", comment: ""),
+                subtitle: progressText(done: 0, of: queue.count),
+                total: queue.count * 100
+            ) { [weak self] in
+                self?.pauseForBackground()
+            }
+        }
         worker = Task { [weak self] in
             await self?.drain()
         }
     }
 
     private func drain() async {
-        while let job = queue.first {
+        while let job = queue.first, !pausedByBackground {
             currentJob = job.id
             progress[job.id] = 0
+            reportProgress()
             do {
                 try await download(job)
                 failures[job.id] = nil
             } catch let error where error is CancellationError || Task.isCancelled {
-                // Cancelled by the user (URLSession reports it as URLError.cancelled); the job was
-                // already removed from the queue.
+                // Cancelled by the user (URLSession reports it as URLError.cancelled; the job was
+                // already removed from the queue) or paused by iOS (the job stays queued).
             } catch {
                 failures[job.id] = error.localizedDescription
                 failedJobs.removeAll { $0.id == job.id }
                 failedJobs.append(job)
             }
             progress[job.id] = nil
-            queue.removeAll { $0.id == job.id }
             currentJob = nil
+            if pausedByBackground { break }
+            if queue.contains(where: { $0.id == job.id }) {
+                queue.removeAll { $0.id == job.id }
+                runDone += 1
+            }
+            saveQueue()
+            reportProgress()
             if Task.isCancelled {
                 // A single cancel stops only the current job; keep going if others remain.
                 worker = nil
-                if !queue.isEmpty { startIfNeeded() } else { endBackgroundWindow() }
+                if !queue.isEmpty { startIfNeeded() } else { finishRun() }
                 return
             }
         }
         worker = nil
-        endBackgroundWindow()
+        if pausedByBackground {
+            // Stopped by iOS, but the user may already be back: carry on right away.
+            if UIApplication.shared.applicationState == .active { startIfNeeded() }
+        } else {
+            finishRun()
+        }
+    }
+
+    /// iOS is ending the background time: stop now, keep the queue for later.
+    private func pauseForBackground() {
+        pausedByBackground = true
+        // The background run has already ended on its side.
+        run = nil
+        worker?.cancel()
+        Storage.flush()
+    }
+
+    private func finishRun() {
+        run?.finish(success: true)
+        run = nil
+        runDone = 0
+    }
+
+    /// Progress in hundredths of a chapter, so the system bar moves within long chapters too.
+    private func reportProgress() {
+        guard let run else { return }
+        let total = runDone + queue.count
+        let partial = currentJob.flatMap { progress[$0] } ?? 0
+        let done = runDone + (currentJob == nil ? 0 : 1)
+        run.update(
+            completed: runDone * 100 + Int(partial * 100),
+            total: total * 100,
+            subtitle: progressText(done: min(done, total), of: total)
+        )
+    }
+
+    private func progressText(done: Int, of total: Int) -> String {
+        String(format: NSLocalizedString("%lld de %lld capítulos", comment: ""), done, total)
     }
 
     private func download(_ job: DownloadJob) async throws {
@@ -248,6 +334,7 @@ final class DownloadManager: ObservableObject {
                 }
                 completed += results.count
                 progress[job.id] = Double(completed) / Double(pages.count)
+                reportProgress()
             }
         } catch {
             try? FileManager.default.removeItem(at: partial)
@@ -273,17 +360,8 @@ final class DownloadManager: ObservableObject {
         Storage.save(downloaded, to: Self.indexFile)
     }
 
-    private func beginBackgroundWindow() {
-        guard backgroundTask == .invalid else { return }
-        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "MokaReader downloads") {
-            Task { @MainActor in DownloadManager.shared.endBackgroundWindow() }
-        }
-    }
-
-    private func endBackgroundWindow() {
-        guard backgroundTask != .invalid else { return }
-        UIApplication.shared.endBackgroundTask(backgroundTask)
-        backgroundTask = .invalid
+    private func saveQueue() {
+        Storage.save(queue, to: Self.queueFile)
     }
 }
 

@@ -122,6 +122,8 @@
 "Actualizando biblioteca" = "Updating library";
 "%lld de %lld series" = "%lld of %lld series";
 "%lld de %lld" = "%lld of %lld";
+"Descargando capítulos" = "Downloading chapters";
+"%lld de %lld capítulos" = "%lld of %lld chapters";
 "Descargando 1 capítulo…" = "Downloading 1 chapter…";
 "Descargando %lld capítulos…" = "Downloading %lld chapters…";
 "Sin capítulos nuevos (%@)." = "No new chapters (%@).";
