@@ -1211,6 +1211,9 @@ struct SpreadPageView: View {
             }
         }
         .task(id: loadKey) { await load() }
+        // Paged views stay alive off screen; the decoded image is what weighs. It comes
+        // back from ImagePipeline's cache when the page shows again.
+        .onDisappear { image = nil }
     }
 
     private func load() async {
@@ -1266,6 +1269,9 @@ struct ReaderPageView: View {
     @State private var image: UIImage?
     @State private var failed: String?
     @State private var attempt = 0
+    /// Height / width of the page once seen, so the placeholder that replaces a released image
+    /// keeps the same height and the strip does not jump.
+    @State private var aspect: CGFloat?
 
     var body: some View {
         Group {
@@ -1296,22 +1302,29 @@ struct ReaderPageView: View {
             } else {
                 ProgressView()
                     .tint(.gray)
-                    .frame(width: width, height: fitHeight ?? width * 1.4)
+                    .frame(width: width, height: fitHeight ?? width * (aspect ?? 1.4))
             }
         }
         .task(id: attempt) {
             guard image == nil else { return }
             failed = nil
             do {
-                image = try await ImagePipeline.shared.page(
+                let loaded = try await ImagePipeline.shared.page(
                     page,
                     sourceId: manga.sourceId,
                     installed: installed,
                     maxWidth: decodeWidth
                 )
+                guard !Task.isCancelled else { return }
+                if loaded.size.width > 0 { aspect = loaded.size.height / loaded.size.width }
+                image = loaded
             } catch {
                 if !Task.isCancelled { failed = error.localizedDescription }
             }
         }
+        // LazyVStack keeps every page it has built, with its state: holding the decoded image
+        // here made a long webtoon session pile up gigabytes until the app crashed. Off screen
+        // the image is released; ImagePipeline's cache brings it back when scrolling up.
+        .onDisappear { image = nil }
     }
 }
