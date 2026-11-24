@@ -2311,9 +2311,12 @@ public final class ExtensionHost {
         );
         Object result = immediate;
         if (immediate == suspended) {
-            if (!completion.await(2, TimeUnit.MINUTES)) {
+            // Extensions set their own, tighter limits; this is the safety net. Some pace a
+            // site on purpose (Comix waits 2.5-5 s per page of chapters), so a long series'
+            // first chapter list can take several minutes.
+            if (!completion.await(10, TimeUnit.MINUTES)) {
                 throw new IllegalStateException(
-                    "Extension operation timed out after 2 minutes"
+                    "Extension operation timed out after 10 minutes"
                 );
             }
             result = resumedValue.get();
