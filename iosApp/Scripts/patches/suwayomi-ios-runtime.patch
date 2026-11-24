@@ -1573,3 +1573,26 @@ index 00000000..9beeaa5c
 +    @WebView.RendererPriority
 +    public abstract int rendererPriorityAtExit();
 +}
+diff --git a/AndroidCompat/src/main/java/android/view/View.java b/AndroidCompat/src/main/java/android/view/View.java
+--- a/AndroidCompat/src/main/java/android/view/View.java
++++ b/AndroidCompat/src/main/java/android/view/View.java
+@@ -2953,7 +2953,8 @@
+     }
+ 
+     public boolean dispatchTouchEvent(MotionEvent event) {
+-        throw new RuntimeException("Stub!");
++        // iOS: no view tree to route through; the view handles its own touches (WebView forwards them).
++        return onTouchEvent(event);
+     }
+ 
+     boolean isAccessibilityFocusedViewOrHost() {
+@@ -4350,7 +4351,8 @@
+     }
+ 
+     public Resources getResources() {
+-        throw new RuntimeException("Stub!");
++        // iOS: the headless system resources (display metrics) are the only ones there are.
++        return Resources.getSystem();
+     }
+ 
+     @Override

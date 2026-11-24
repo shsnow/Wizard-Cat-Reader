@@ -1,9 +1,11 @@
 package app.tachiaz.compat;
 
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.MotionEvent;
 import android.webkit.ConsoleMessage;
 import android.webkit.CookieManager;
 import android.webkit.IOSRenderProcessGoneDetail;
@@ -204,7 +206,7 @@ public final class IOSWebViewProviderFactory
                         ((WebView.VisualStateCallback) args[1]).onComplete((Long) args[0]);
                     }
                     return null;
-                case "getViewDelegate":
+                case "getViewDelegate": return viewDelegate(method.getReturnType());
                 case "getScrollDelegate": return defaultProxy(method.getReturnType());
                 case "zoomBy":
                 case "zoomIn":
@@ -214,6 +216,38 @@ public final class IOSWebViewProviderFactory
                 case "getRendererPriorityWaivedWhenNotVisible": return false;
                 default: return defaultValue(method.getReturnType());
             }
+        }
+
+        /** Handles touches sent to the WebView (View.dispatchTouchEvent → onTouchEvent). */
+        private Object viewDelegate(Class<?> type) {
+            return Proxy.newProxyInstance(
+                type.getClassLoader(),
+                new Class<?>[] {type},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("onTouchEvent")
+                        && args != null && args.length == 1 && args[0] instanceof MotionEvent) {
+                        touch((MotionEvent) args[0]);
+                        return true;
+                    }
+                    return defaultValue(method.getReturnType());
+                }
+            );
+        }
+
+        /**
+         * WKWebView takes no synthetic native touches, so a touch becomes the DOM events a finger
+         * would cause (pointer, touch and mouse events, then a click for a tap) at the element under
+         * the point. Coordinates arrive in device pixels; the page works in CSS pixels.
+         */
+        private void touch(MotionEvent event) {
+            if (handle == 0) return;
+            float density = Resources.getSystem().getDisplayMetrics().density;
+            if (density <= 0) density = 1;
+            String script = TOUCH_SCRIPT
+                + "(" + event.getActionMasked()
+                + "," + (event.getX() / density)
+                + "," + (event.getY() / density) + ")";
+            command("evaluate", handle, script, null);
         }
 
         String event(String event, String argument1, String argument2) throws Exception {
@@ -715,6 +749,27 @@ public final class IOSWebViewProviderFactory
         return value == null || value.isEmpty() ? null : value;
     }
     private static String nullToEmpty(String value) { return value == null ? "" : value; }
+    private static final String TOUCH_SCRIPT =
+        "(function(a,x,y){"
+        + "var s=window.__wizardTouch||(window.__wizardTouch={});"
+        + "var t=(a===0?null:s.target)||document.elementFromPoint(x,y)||document.body;"
+        + "if(!t)return;"
+        + "var up=a===1||a===3;"
+        + "function pe(n){try{t.dispatchEvent(new PointerEvent(n,{bubbles:true,cancelable:true,composed:true,"
+        + "clientX:x,clientY:y,pointerId:1,pointerType:'touch',isPrimary:true,"
+        + "pressure:up?0:0.5,button:0,buttons:up?0:1}));}catch(e){}}"
+        + "function me(n){try{t.dispatchEvent(new MouseEvent(n,{bubbles:true,cancelable:true,composed:true,"
+        + "clientX:x,clientY:y,button:0,buttons:(n==='mousedown')?1:0,view:window}));}catch(e){}}"
+        + "function te(n){try{var touch=new Touch({identifier:1,target:t,clientX:x,clientY:y});"
+        + "var list=up?[]:[touch];t.dispatchEvent(new TouchEvent(n,{bubbles:true,cancelable:true,composed:true,"
+        + "touches:list,targetTouches:list,changedTouches:[touch]}));}catch(e){}}"
+        + "if(a===0){s.target=t;s.x=x;s.y=y;pe('pointerdown');te('touchstart');me('mousedown');}"
+        + "else if(a===2){pe('pointermove');te('touchmove');}"
+        + "else if(a===1){pe('pointerup');te('touchend');me('mouseup');"
+        + "if(Math.abs(x-s.x)<12&&Math.abs(y-s.y)<12){me('click');}s.target=null;}"
+        + "else if(a===3){pe('pointercancel');te('touchcancel');s.target=null;}"
+        + "})";
+
     private static Object defaultProxy(Class<?> type) {
         return Proxy.newProxyInstance(
             type.getClassLoader(),
