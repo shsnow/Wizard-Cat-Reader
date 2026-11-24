@@ -259,6 +259,8 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
     private var interfaces: [String: [String: Int]] = [:]
     /// Android does not ask shouldOverrideUrlLoading about loadUrl() itself.
     private var programmaticLoadPending = false
+    /// Looks for a site check (Cloudflare, a site's own captcha frame) the user must pass.
+    private var challengeWatch: Task<Void, Never>?
 
     init(handle: Int64) {
         let proxy = BridgeMessageProxy()
@@ -292,6 +294,9 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
     }
 
     func tearDown() {
+        challengeWatch?.cancel()
+        challengeWatch = nil
+        ChallengeOverlay.shared.release(self)
         webView.stopLoading()
         webView.navigationDelegate = nil
         webView.uiDelegate = nil
@@ -527,6 +532,66 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
                               page: webView.url?.host ?? "")
         sendEvent("pageStarted", webView.url?.absoluteString ?? "")
         sendEvent("progress", "50")
+        watchForChallenge()
+    }
+
+    // MARK: Site checks
+
+    /// Android extensions show their WebView for a captcha through Android dialogs, which do
+    /// not exist here. Instead, a check that stays on the page for a couple of seconds (an
+    /// invisible one passes by itself) brings the WebView on screen for the user to pass,
+    /// and it goes back into hiding once the check is gone.
+    private static let challengeCheck = """
+    (function(){try{if(/^(Just a moment|Attention Required|Un momento)/i.test(document.title))return true;\
+    var f=document.querySelectorAll('iframe');for(var i=0;i<f.length;i++){var s=f[i].src||'';\
+    if(/\\/@waf\\/challenge|challenges\\.cloudflare\\.com/.test(s)){var r=f[i].getBoundingClientRect();\
+    if(r.width>0&&r.height>0)return true;}}return false}catch(e){return false}})()
+    """
+
+    private func watchForChallenge() {
+        challengeWatch?.cancel()
+        challengeWatch = Task { @MainActor [weak self] in
+            var seen = 0
+            var checks = 0
+            while !Task.isCancelled, checks < 600 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                checks += 1
+                guard let self, self.webView.superview != nil || ChallengeOverlay.shared.isShowing(self)
+                else { return }
+                let present = await self.challengePresent()
+                if present {
+                    seen += 1
+                    if seen == 2 {
+                        WebViewLog.shared.add(level: "page", text: "site check shown to the user",
+                                              page: self.webView.url?.host ?? "")
+                        ChallengeOverlay.shared.show(self)
+                    }
+                } else {
+                    if seen >= 2 {
+                        WebViewLog.shared.add(level: "page", text: "site check gone",
+                                              page: self.webView.url?.host ?? "")
+                    }
+                    seen = 0
+                    ChallengeOverlay.shared.release(self)
+                }
+            }
+        }
+    }
+
+    private func challengePresent() async -> Bool {
+        await withCheckedContinuation { continuation in
+            webView.evaluateJavaScript(Self.challengeCheck) { value, _ in
+                continuation.resume(returning: (value as? Bool) ?? false)
+            }
+        }
+    }
+
+    /// Back off screen, where it lives between site checks.
+    func hideOffscreen() {
+        webView.isUserInteractionEnabled = false
+        webView.alpha = 0.01
+        webView.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+        Self.hostWindow()?.insertSubview(webView, at: 0)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -805,5 +870,95 @@ final class WebViewLog: ObservableObject {
         format.dateFormat = "HH:mm:ss"
         return lines.map { "\(format.string(from: $0.date)) [\($0.level)] \($0.page) \($0.text)" }
             .joined(separator: "\n")
+    }
+}
+
+// MARK: - Site check overlay
+
+/// Puts a hidden extension WebView on screen while it shows a site check, with a bar to
+/// close it. One at a time.
+@MainActor
+final class ChallengeOverlay {
+    static let shared = ChallengeOverlay()
+
+    private weak var owner: BridgedWebView?
+    private var container: UIView?
+
+    func isShowing(_ view: BridgedWebView) -> Bool { owner === view && container != nil }
+
+    func show(_ view: BridgedWebView) {
+        guard owner == nil || owner === view, container == nil else { return }
+        guard let window = Self.window() else { return }
+        owner = view
+
+        let box = UIView(frame: window.bounds)
+        box.backgroundColor = .systemBackground
+        box.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+        let bar = UIView()
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = NSLocalizedString("El sitio pide una verificación", comment: "")
+        label.font = .preferredFont(forTextStyle: .headline)
+        label.adjustsFontSizeToFitWidth = true
+        let close = UIButton(type: .system)
+        close.translatesAutoresizingMaskIntoConstraints = false
+        close.setTitle(NSLocalizedString("Cerrar", comment: ""), for: .normal)
+        close.addAction(UIAction { [weak self] _ in self?.dismiss() }, for: .touchUpInside)
+        bar.addSubview(label)
+        bar.addSubview(close)
+        box.addSubview(bar)
+
+        let web = view.webView
+        web.removeFromSuperview()
+        web.translatesAutoresizingMaskIntoConstraints = false
+        web.alpha = 1
+        web.isUserInteractionEnabled = true
+        box.addSubview(web)
+
+        NSLayoutConstraint.activate([
+            bar.topAnchor.constraint(equalTo: box.safeAreaLayoutGuide.topAnchor),
+            bar.leadingAnchor.constraint(equalTo: box.leadingAnchor),
+            bar.trailingAnchor.constraint(equalTo: box.trailingAnchor),
+            bar.heightAnchor.constraint(equalToConstant: 48),
+            label.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 16),
+            label.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: close.leadingAnchor, constant: -12),
+            close.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -16),
+            close.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+            web.topAnchor.constraint(equalTo: bar.bottomAnchor),
+            web.leadingAnchor.constraint(equalTo: box.leadingAnchor),
+            web.trailingAnchor.constraint(equalTo: box.trailingAnchor),
+            web.bottomAnchor.constraint(equalTo: box.bottomAnchor),
+        ])
+        window.addSubview(box)
+        container = box
+    }
+
+    /// The check is gone (or the WebView is closing): back into hiding.
+    func release(_ view: BridgedWebView) {
+        guard owner === view else { return }
+        dismiss()
+    }
+
+    func dismiss() {
+        let view = owner
+        owner = nil
+        guard let box = container else { return }
+        container = nil
+        if let view {
+            view.webView.removeFromSuperview()
+            view.webView.translatesAutoresizingMaskIntoConstraints = true
+            view.hideOffscreen()
+        }
+        box.removeFromSuperview()
+    }
+
+    private static func window() -> UIWindow? {
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+        return windows.first(where: \.isKeyWindow) ?? windows.first
     }
 }

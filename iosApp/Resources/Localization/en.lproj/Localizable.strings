@@ -440,3 +440,4 @@
 "Se permiten las extensiones normales y solo las mixtas que elijas abajo. Las +18 se bloquean." = "Normal extensions are allowed, plus only the mixed ones you pick below. 18+ ones are blocked.";
 "Tus repositorios no tienen extensiones mixtas." = "Your repositories have no mixed extensions.";
 "Solo estas extensiones mixtas se permiten, además de las normales. Las +18 nunca se permiten." = "Only these mixed extensions are allowed, besides the normal ones. 18+ ones are never allowed.";
+"El sitio pide una verificación" = "The site asks for a check";
