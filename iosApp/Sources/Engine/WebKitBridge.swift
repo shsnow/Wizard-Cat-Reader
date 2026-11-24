@@ -449,30 +449,47 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         """
     }
 
-    /// WKWebView has no shouldInterceptRequest. Extensions that watch the page's own
-    /// requests (to know the site is loading data, or to pace it) at least learn of its
-    /// fetch and XHR calls: the page reports each one, and Java hears of it as
-    /// shouldInterceptRequest whose answer is ignored, as the request already went out.
+    /// WKWebView has no shouldInterceptRequest. For the page's own fetch and XHR calls (where
+    /// extensions watch, pace or answer a site's API) it is rebuilt in the page: each call
+    /// waits until Java's shouldInterceptRequest has run, so an extension that paces the
+    /// site holds the request back as on Android, and a response it returns answers a
+    /// fetch in place of the network. Navigations and subresources still go straight out.
     private static let requestObserver = WKUserScript(
         source: """
         (function(){if(window.__wizardRequests)return;window.__wizardRequests=1;\
-        function r(u,m){try{window.webkit.messageHandlers.\(messageHandlerName).postMessage(\
-        {r:new URL(String(u),location.href).href,m:String(m||'GET').toUpperCase()})}catch(e){}}\
-        var f=window.fetch;if(f){window.fetch=function(i,o){try{r(i&&i.url?i.url:i,\
-        (o&&o.method)||(i&&i.method))}catch(e){}return f.apply(this,arguments)}}\
+        var H=window.webkit.messageHandlers.\(messageHandlerName),n=0,w={};\
+        window.__wizardRelease=function(i,r){var f=w[i];if(f){delete w[i];f(r)}};\
+        function hold(u,m){return new Promise(function(ok){var i=++n;w[i]=ok;\
+        setTimeout(function(){window.__wizardRelease(i,null)},45000);\
+        try{H.postMessage({r:new URL(String(u),location.href).href,m:String(m||'GET').toUpperCase(),i:i})}\
+        catch(e){window.__wizardRelease(i,null)}})}\
+        function bytes(t){var b=atob(t||''),a=new Uint8Array(b.length);\
+        for(var k=0;k<b.length;k++)a[k]=b.charCodeAt(k);return a}\
+        var f=window.fetch;if(f){window.fetch=function(i,o){var s=this,g=arguments,u,m;\
+        try{u=i&&i.url?i.url:i;m=(o&&o.method)||(i&&i.method)}catch(e){}\
+        return hold(u,m).then(function(r){if(!r)return f.apply(s,g);var st=r.s||200;\
+        var nb=st===204||st===205||st===304||st<200;\
+        return new Response(nb?null:bytes(r.b),{status:st,headers:r.m?{'Content-Type':r.m}:{}})})}}\
         var x=XMLHttpRequest.prototype,op=x.open,sd=x.send;\
-        x.open=function(m,u){this.__wizardR=[u,m];return op.apply(this,arguments)};\
-        x.send=function(){if(this.__wizardR)r(this.__wizardR[0],this.__wizardR[1]);\
-        return sd.apply(this,arguments)};\
+        x.open=function(m,u,y){this.__wizardR=[u,m,arguments.length<3||y!==false];\
+        return op.apply(this,arguments)};\
+        x.send=function(){var s=this,g=arguments;if(!s.__wizardR||!s.__wizardR[2])return sd.apply(s,g);\
+        hold(s.__wizardR[0],s.__wizardR[1]).then(function(){try{sd.apply(s,g)}catch(e){}})};\
         ['log','info','warn','error'].forEach(function(k){var o=console[k];console[k]=function(){\
         try{var t=Array.prototype.map.call(arguments,function(v){try{return typeof v==='string'?v:JSON.stringify(v)}\
-        catch(e){return String(v)}}).join(' ');window.webkit.messageHandlers.\(messageHandlerName)\
-        .postMessage({c:k,t:t.slice(0,4000)})}catch(e){}return o.apply(this,arguments)}});\
-        window.addEventListener('error',function(e){try{window.webkit.messageHandlers.\(messageHandlerName)\
-        .postMessage({c:'error',t:String(e.message)+' ('+e.filename+':'+e.lineno+')'})}catch(x){}})})();
+        catch(e){return String(v)}}).join(' ');H.postMessage({c:k,t:t.slice(0,4000)})}catch(e){}\
+        return o.apply(this,arguments)}});\
+        window.addEventListener('error',function(e){try{H.postMessage(\
+        {c:'error',t:String(e.message)+' ('+e.filename+':'+e.lineno+')'})}catch(x){}})})();
         """,
         injectionTime: .atDocumentStart,
         forMainFrameOnly: true
+    )
+
+    /// Runs Java's shouldInterceptRequest for a page request off the main thread (it may
+    /// wait: a pacing extension sleeps in it), then lets the request go, or answers it.
+    private static let interceptQueue = DispatchQueue(
+        label: "wizardcat.webkit.intercept", qos: .userInitiated, attributes: .concurrent
     )
 
     func received(_ message: WKScriptMessage) {
@@ -483,16 +500,23 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         }
         if let body = message.body as? [String: Any], let address = body["r"] as? String {
             let method = body["m"] as? String ?? "GET"
-            let isMain = message.frameInfo.isMainFrame
-            let payload = [
-                WebKitBridge.encode(address), WebKitBridge.encode(method), String(isMain),
-            ].joined(separator: "\n")
-            let handle = self.handle
-            WebKitBridge.events.async {
-                _ = WebKitBridge.send(handle, "requestSeen", payload)
-            }
+            let id = (body["i"] as? NSNumber)?.intValue ?? 0
+            // A fetch/XHR is a subresource: never "for the main frame" in Android's terms.
+            let payload = WebKitBridge.encodeRequest(
+                url: address, method: method, mainFrame: false, redirect: false,
+                gesture: false, headers: [:]
+            )
             WebViewLog.shared.add(level: "request", text: "\(method) \(address)",
                                   page: message.frameInfo.request.url?.host ?? "")
+            let handle = self.handle
+            Self.interceptQueue.async { [weak self] in
+                let answer = WebKitBridge.send(handle, "intercept", payload) ?? ""
+                let release = "window.__wizardRelease&&window.__wizardRelease(\(id),"
+                    + Self.responseLiteral(answer) + ")"
+                Task { @MainActor in
+                    self?.webView.evaluateJavaScript(release, completionHandler: nil)
+                }
+            }
             return
         }
         guard let body = message.body as? [String: Any],
@@ -503,6 +527,15 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         WebKitBridge.events.async {
             _ = WebKitBridge.send(handle, "jsBridge", name, payload)
         }
+    }
+
+    /// Java's encoded WebResourceResponse ("" for none) as a JS object for the page, or null.
+    nonisolated private static func responseLiteral(_ encoded: String) -> String {
+        let fields = encoded.components(separatedBy: "\n")
+        guard fields.count >= 6, let status = Int(fields[0]) else { return "null" }
+        let mime = WebKitBridge.decode(fields[2])
+        return "{s:\(status),m:\(WebKitBridge.javascriptLiteral(mime)),"
+            + "b:\(WebKitBridge.javascriptLiteral(fields[5]))}"
     }
 
     // MARK: WKNavigationDelegate
