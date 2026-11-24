@@ -19,6 +19,8 @@
 "Acerca de" = "About";
 "Licencias" = "Licenses";
 "Licencias y créditos" = "Licenses and credits";
+"Registro de WebView" = "WebView log";
+"Vacío. Abre la serie que falla y vuelve aquí." = "Empty. Open the series that fails and come back here.";
 "Filtros" = "Filters";
 "Filtros de búsqueda" = "Search filters";
 "Repositorios" = "Repositories";

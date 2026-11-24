@@ -163,6 +163,7 @@ struct SettingsView: View {
                     Link("Más apps de Wizard Cat Store", destination: store)
                 }
                 NavigationLink("Licencias y créditos") { LicensesView() }
+                NavigationLink("Registro de WebView") { WebViewLogView() }
             } header: {
                 Text("Acerca de")
             } footer: {
@@ -851,5 +852,40 @@ struct TachibkDocument: FileDocument {
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         FileWrapper(regularFileWithContents: data)
+    }
+}
+
+/// The hidden pages' console and requests, to send along when a source fails.
+struct WebViewLogView: View {
+    @ObservedObject private var log = WebViewLog.shared
+
+    var body: some View {
+        List {
+            if log.lines.isEmpty {
+                Text("Vacío. Abre la serie que falla y vuelve aquí.")
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(log.lines.reversed()) { line in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(line.level) · \(line.page)")
+                        .font(.caption2)
+                        .foregroundStyle(line.level == "error" ? Color.red : Color.secondary)
+                    Text(line.text)
+                        .font(.caption.monospaced())
+                        .lineLimit(12)
+                        .textSelection(.enabled)
+                }
+            }
+        }
+        .navigationTitle("Registro de WebView")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                ShareLink(item: log.text) { Image(systemName: "square.and.arrow.up") }
+                    .disabled(log.lines.isEmpty)
+                Button { log.clear() } label: { Image(systemName: "trash") }
+                    .disabled(log.lines.isEmpty)
+            }
+        }
     }
 }

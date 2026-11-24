@@ -778,7 +778,10 @@ public final class IOSWebViewProviderFactory
         + "if(a===0){s.target=t;s.x=x;s.y=y;pe('pointerdown');te('touchstart');me('mousedown');}"
         + "else if(a===2){pe('pointermove');te('touchmove');}"
         + "else if(a===1){pe('pointerup');te('touchend');me('mouseup');"
-        + "if(Math.abs(x-s.x)<12&&Math.abs(y-s.y)<12){me('click');}s.target=null;}"
+        + "if(Math.abs(x-s.x)<12&&Math.abs(y-s.y)<12){me('click');}"
+        + "try{console.log('[wizard-tap] '+Math.round(x)+','+Math.round(y)+' '+t.tagName+'.'"
+        + "+String(t.className||'').slice(0,40)+' '+String(t.textContent||'').trim().slice(0,20))}catch(e){}"
+        + "s.target=null;}"
         + "else if(a===3){pe('pointercancel');te('touchcancel');s.target=null;}"
         + "})";
 

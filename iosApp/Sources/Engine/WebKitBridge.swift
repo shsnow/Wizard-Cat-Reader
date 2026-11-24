@@ -421,13 +421,24 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         var x=XMLHttpRequest.prototype,op=x.open,sd=x.send;\
         x.open=function(m,u){this.__wizardR=[u,m];return op.apply(this,arguments)};\
         x.send=function(){if(this.__wizardR)r(this.__wizardR[0],this.__wizardR[1]);\
-        return sd.apply(this,arguments)}})();
+        return sd.apply(this,arguments)};\
+        ['log','info','warn','error'].forEach(function(k){var o=console[k];console[k]=function(){\
+        try{var t=Array.prototype.map.call(arguments,function(v){try{return typeof v==='string'?v:JSON.stringify(v)}\
+        catch(e){return String(v)}}).join(' ');window.webkit.messageHandlers.\(messageHandlerName)\
+        .postMessage({c:k,t:t.slice(0,4000)})}catch(e){}return o.apply(this,arguments)}});\
+        window.addEventListener('error',function(e){try{window.webkit.messageHandlers.\(messageHandlerName)\
+        .postMessage({c:'error',t:String(e.message)+' ('+e.filename+':'+e.lineno+')'})}catch(x){}})})();
         """,
         injectionTime: .atDocumentStart,
         forMainFrameOnly: false
     )
 
     func received(_ message: WKScriptMessage) {
+        if let body = message.body as? [String: Any], let level = body["c"] as? String {
+            WebViewLog.shared.add(level: level, text: body["t"] as? String ?? "",
+                                  page: message.frameInfo.request.url?.host ?? "")
+            return
+        }
         if let body = message.body as? [String: Any], let address = body["r"] as? String {
             let method = body["m"] as? String ?? "GET"
             let isMain = message.frameInfo.isMainFrame
@@ -438,6 +449,8 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
             WebKitBridge.events.async {
                 _ = WebKitBridge.send(handle, "requestSeen", payload)
             }
+            WebViewLog.shared.add(level: "request", text: "\(method) \(address)",
+                                  page: message.frameInfo.request.url?.host ?? "")
             return
         }
         guard let body = message.body as? [String: Any],
@@ -706,5 +719,39 @@ enum WebKitCookies {
         guard host == bare || host.hasSuffix("." + bare) else { return false }
         let path = url.path.isEmpty ? "/" : url.path
         return cookie.path == "/" || path.hasPrefix(cookie.path)
+    }
+}
+
+// MARK: - Log
+
+/// What the extensions' hidden pages printed and requested, last lines only, for
+/// diagnosing a source that fails (Ajustes → Registro de WebView). Memory only.
+@MainActor
+final class WebViewLog: ObservableObject {
+    static let shared = WebViewLog()
+
+    struct Line: Identifiable {
+        let id = UUID()
+        let date: Date
+        let level: String
+        let page: String
+        let text: String
+    }
+
+    @Published private(set) var lines: [Line] = []
+    private let limit = 400
+
+    func add(level: String, text: String, page: String) {
+        lines.append(Line(date: Date(), level: level, page: page, text: text))
+        if lines.count > limit { lines.removeFirst(lines.count - limit) }
+    }
+
+    func clear() { lines.removeAll() }
+
+    var text: String {
+        let format = DateFormatter()
+        format.dateFormat = "HH:mm:ss"
+        return lines.map { "\(format.string(from: $0.date)) [\($0.level)] \($0.page) \($0.text)" }
+            .joined(separator: "\n")
     }
 }
