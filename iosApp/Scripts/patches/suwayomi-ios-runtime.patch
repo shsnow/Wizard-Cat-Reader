@@ -4973,3 +4973,17 @@ index 00000000..d1a87aab
 +                SystemProperties.getInt("ro.sf.lcd_density", DENSITY_DEFAULT));
 +    }
 +}
+diff --git a/AndroidCompat/src/main/java/android/view/ViewGroup.java b/AndroidCompat/src/main/java/android/view/ViewGroup.java
+index 396aaa87..40aa95fa 100644
+--- a/AndroidCompat/src/main/java/android/view/ViewGroup.java
++++ b/AndroidCompat/src/main/java/android/view/ViewGroup.java
+@@ -563,7 +563,8 @@ public abstract class ViewGroup extends View implements ViewParent, ViewManager
+ 
+     @Override
+     public boolean dispatchTouchEvent(MotionEvent ev) {
+-        throw new RuntimeException("Stub!");
++        // iOS: no child views to route through; the group handles the touch itself.
++        return onTouchEvent(ev);
+     }
+ 
+     public ArrayList<View> buildTouchDispatchChildList() {
