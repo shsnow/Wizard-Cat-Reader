@@ -339,10 +339,28 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         let wrapped = """
         (function(){try{var __wcR=(0,eval)(\(WebKitBridge.javascriptLiteral(script)));\
         if(__wcR===undefined)return 'null';var __wcS=JSON.stringify(__wcR);\
-        return __wcS===undefined?'null':__wcS;}catch(__wcE){return 'null';}})()
+        return __wcS===undefined?'null':__wcS;}catch(__wcE){return '__wcError:'+String(__wcE);}})()
         """
-        webView.evaluateJavaScript(wrapped) { value, _ in
-            completion((value as? String) ?? "null")
+        let page = webView.url?.host ?? ""
+        // Long scripts are the extension's own (polls are short): note when they run.
+        if script.count > 1500 {
+            WebViewLog.shared.add(level: "eval", text: "\(script.count) chars · \(webView.url?.path ?? "")",
+                                  page: page)
+        }
+        webView.evaluateJavaScript(wrapped) { value, error in
+            var result = (value as? String) ?? "null"
+            if result.hasPrefix("__wcError:") {
+                WebViewLog.shared.add(
+                    level: "error",
+                    text: "evaluate: \(result.dropFirst(10)) · \(script.prefix(120))",
+                    page: page
+                )
+                result = "null"
+            } else if let error {
+                WebViewLog.shared.add(level: "error", text: "evaluate: \(error.localizedDescription)",
+                                      page: page)
+            }
+            completion(result)
         }
     }
 
@@ -505,6 +523,8 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
     /// The new document exists from here on: scripts the extension evaluates on
     /// onPageStarted land in it, as they do on Android.
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        WebViewLog.shared.add(level: "page", text: "started \(webView.url?.absoluteString ?? "")",
+                              page: webView.url?.host ?? "")
         sendEvent("pageStarted", webView.url?.absoluteString ?? "")
         sendEvent("progress", "50")
     }
@@ -515,6 +535,7 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         if let title = webView.title, !title.isEmpty {
             sendEvent("title", title)
         }
+        WebViewLog.shared.add(level: "page", text: "finished \(url)", page: webView.url?.host ?? "")
         sendEvent("pageFinished", url)
     }
 
