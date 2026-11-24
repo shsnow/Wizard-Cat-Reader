@@ -182,7 +182,7 @@ struct SourceFiltersSheet: View {
                 Image(systemName: value == 1
                     ? "checkmark.square.fill"
                     : value == 2 ? "xmark.square.fill" : "square")
-                    .foregroundStyle(value == 1 ? Color.moka : value == 2 ? Color.red : Color.secondary)
+                    .foregroundStyle(value == 1 ? Color.accentColor : value == 2 ? Color.red : Color.secondary)
                 Text(filter.name)
                     .foregroundStyle(.primary)
             }
@@ -212,7 +212,7 @@ struct SourceFiltersSheet: View {
                     if selectedIndex == index {
                         Image(systemName: ascending ? "chevron.up" : "chevron.down")
                             .font(.footnote.weight(.semibold))
-                            .foregroundStyle(Color.moka)
+                            .foregroundStyle(Color.accentColor)
                     }
                 }
             }

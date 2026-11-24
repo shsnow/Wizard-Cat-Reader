@@ -93,7 +93,7 @@ struct ContentSettingsView: View {
                             }
                         }
                     }
-                    .tint(.moka)
+                    .tint(Color.accentColor)
                 }
             }
         } header: {

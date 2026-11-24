@@ -38,7 +38,7 @@ struct SettingsView: View {
                         if !downloads.queue.isEmpty {
                             Text("\(downloads.queue.count) en cola")
                                 .font(.footnote)
-                                .foregroundStyle(Color.moka)
+                                .foregroundStyle(Color.accentColor)
                         }
                     }
                 }
@@ -59,6 +59,19 @@ struct SettingsView: View {
             Section {
                 Picker("Tema", selection: $settings.appTheme) {
                     ForEach(AppTheme.allCases) { Text($0.title).tag($0) }
+                }
+                NavigationLink {
+                    AccentColorPicker()
+                } label: {
+                    HStack {
+                        Text("Color de acento")
+                        Spacer()
+                        Circle()
+                            .fill(settings.accentColor)
+                            .frame(width: 18, height: 18)
+                        Text(settings.accentChoice.title)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Picker("Idioma de la app", selection: $settings.appLanguage) {
                     ForEach(AppLanguage.allCases) { Text($0.title).tag($0) }
@@ -166,7 +179,7 @@ struct SettingsView: View {
         HStack(spacing: 12) {
             Image(systemName: symbol)
                 .font(.body)
-                .foregroundStyle(Color.moka)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 26)
             Text(LocalizedStringKey(title))
         }
@@ -304,7 +317,7 @@ struct DownloadSettingsView: View {
                         Spacer()
                         if !downloads.queue.isEmpty {
                             Text("\(downloads.queue.count) en cola")
-                                .foregroundStyle(Color.moka)
+                                .foregroundStyle(Color.accentColor)
                         } else {
                             Text(downloads.totalBytes.byteText)
                                 .foregroundStyle(.secondary)
@@ -640,6 +653,70 @@ enum AppIconChoice: String, CaseIterable, Identifiable {
     }
 }
 
+/// Picks the accent color used for buttons, badges and progress across the app.
+struct AccentColorPicker: View {
+    @EnvironmentObject private var settings: AppSettings
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(AccentChoice.allCases.filter { $0 != .custom }) { choice in
+                    Button {
+                        settings.accentChoice = choice
+                    } label: {
+                        row(title: choice.title, color: choice.preset ?? .moka,
+                            selected: settings.accentChoice == choice)
+                    }
+                }
+            }
+            Section {
+                ColorPicker(
+                    selection: Binding(
+                        get: { settings.customAccent },
+                        set: { color in
+                            settings.customAccent = color
+                            settings.accentChoice = .custom
+                        }
+                    ),
+                    supportsOpacity: false
+                ) {
+                    HStack(spacing: 14) {
+                        Text("Personalizado")
+                        Spacer()
+                        if settings.accentChoice == .custom {
+                            Image(systemName: "checkmark")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Color.accentColor)
+                        }
+                    }
+                }
+            } footer: {
+                Text("Elige cualquier color. Uno muy claro o muy oscuro puede leerse mal en alguno de los temas.")
+            }
+        }
+        .navigationTitle("Color de acento")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func row(title: String, color: Color, selected: Bool) -> some View {
+        HStack(spacing: 14) {
+            Circle()
+                .fill(color)
+                .frame(width: 28, height: 28)
+                .overlay(Circle().strokeBorder(Color.primary.opacity(0.12)))
+            Text(title)
+                .foregroundStyle(.primary)
+            Spacer()
+            if selected {
+                Image(systemName: "checkmark")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(color)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
 /// Lets the user switch between the bundled app icons.
 struct AppIconPicker: View {
     @State private var selected: AppIconChoice = .classic
@@ -668,7 +745,7 @@ struct AppIconPicker: View {
                     if choice == selected {
                         Image(systemName: "checkmark")
                             .fontWeight(.semibold)
-                            .foregroundStyle(Color.moka)
+                            .foregroundStyle(Color.accentColor)
                     }
                 }
                 .padding(.vertical, 2)

@@ -438,7 +438,7 @@ struct MangaDetailView: View {
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                Color.moka.opacity(0.08),
+                Color.accentColor.opacity(0.08),
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
             .listRowSeparator(.hidden)
@@ -455,7 +455,7 @@ struct MangaDetailView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(
-                    Color.moka,
+                    Color.accentColor,
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .foregroundStyle(.white)
@@ -619,7 +619,7 @@ struct MangaDetailView: View {
                 .padding(.vertical, 6)
                 .foregroundStyle(inLibrary ? Color.primary : Color.white)
                 .background(
-                    inLibrary ? Color(.secondarySystemBackground) : Color.moka,
+                    inLibrary ? Color(.secondarySystemBackground) : Color.accentColor,
                     in: Capsule()
                 )
         }
@@ -647,7 +647,7 @@ struct MangaDetailView: View {
             HStack(spacing: 10) {
                 if selectingChapters {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(isSelected ? Color.moka : Color.secondary)
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(chapter.name)
@@ -665,7 +665,7 @@ struct MangaDetailView: View {
                                     Text("· Página \(position.page + 1)")
                                 }
                             }
-                            .foregroundStyle(Color.moka)
+                            .foregroundStyle(Color.accentColor)
                         }
                     }
                     .font(.caption)
@@ -709,7 +709,7 @@ struct MangaDetailView: View {
                 Button(read ? LocalizedStringKey("No leído") : "Leído") {
                     library.setRead(!read, chapter: chapter, in: manga)
                 }
-                .tint(read ? .gray : .moka)
+                .tint(read ? .gray : Color.accentColor)
                 if state == .downloaded {
                     Button("Borrar descarga", role: .destructive) {
                         downloads.delete(manga: manga, chapter: chapter)
@@ -787,7 +787,7 @@ struct MangaDetailView: View {
             case .downloading(let value):
                 Text("\(Int(value * 100))%")
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(Color.moka)
+                    .foregroundStyle(Color.accentColor)
             case .downloaded:
                 Image(systemName: "arrow.down.circle.fill")
                     .foregroundStyle(.secondary)

@@ -35,7 +35,9 @@ struct MokaReaderApp: App {
                 .environmentObject(engine)
                 .environmentObject(downloads)
                 .environmentObject(updater)
-                .tint(.moka)
+                .tint(settings.accentColor)
+                // Color.accentColor in the views reads this, so a new choice shows everywhere at once.
+                .accentColor(settings.accentColor)
                 .preferredColorScheme(settings.appTheme.colorScheme)
         }
     }

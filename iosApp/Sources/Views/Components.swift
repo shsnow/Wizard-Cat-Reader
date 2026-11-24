@@ -79,7 +79,7 @@ struct MangaCell: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .strokeBorder(
-                            selected == true ? Color.moka : Color.primary.opacity(0.08),
+                            selected == true ? Color.accentColor : Color.primary.opacity(0.08),
                             lineWidth: selected == true ? 2.5 : 1
                         )
                 )
@@ -89,7 +89,7 @@ struct MangaCell: View {
                             .font(.caption2.bold())
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(Color.moka, in: Capsule())
+                            .background(Color.accentColor, in: Capsule())
                             .foregroundStyle(.white)
                             .padding(6)
                     }
@@ -100,7 +100,7 @@ struct MangaCell: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(6)
-                            .background(Color.moka, in: Circle())
+                            .background(Color.accentColor, in: Circle())
                             .padding(6)
                             .accessibilityLabel("En la biblioteca")
                     }
@@ -110,7 +110,7 @@ struct MangaCell: View {
                         Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, selected ? Color.moka : Color.black.opacity(0.35))
+                            .foregroundStyle(.white, selected ? Color.accentColor : Color.black.opacity(0.35))
                             .padding(6)
                     }
                 }
@@ -218,9 +218,9 @@ struct EmptyStateView: View {
         VStack(spacing: 14) {
             Image(systemName: symbol)
                 .font(.system(size: 30, weight: .medium))
-                .foregroundStyle(Color.moka)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 76, height: 76)
-                .background(Color.moka.opacity(0.12), in: Circle())
+                .background(Color.accentColor.opacity(0.12), in: Circle())
             // As keys, so literal call sites hit the translation table; a dynamic
             // message (an error) misses the table and shows as-is.
             Text(LocalizedStringKey(title))

@@ -149,7 +149,7 @@ private struct UpdatesList: View {
                             : "\(updater.newChapters) capítulos nuevos."
                 )
                 .font(.footnote)
-                .foregroundStyle(updater.newChapters == 0 ? .secondary : Color.moka)
+                .foregroundStyle(updater.newChapters == 0 ? .secondary : Color.accentColor)
                 .listRowSeparator(.hidden)
             }
 
@@ -199,11 +199,11 @@ private struct UpdatesList: View {
                     .font(.caption2.bold())
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
-                    .background(Color.moka.opacity(0.15), in: Capsule())
-                    .foregroundStyle(Color.moka)
+                    .background(Color.accentColor.opacity(0.15), in: Capsule())
+                    .foregroundStyle(Color.accentColor)
             } else if !read {
                 Circle()
-                    .fill(Color.moka)
+                    .fill(Color.accentColor)
                     .frame(width: 8, height: 8)
             }
         }
@@ -217,7 +217,7 @@ struct DayHeader: View {
     var body: some View {
         Text(date.relativeDayText)
             .font(.system(.footnote, design: .serif).weight(.semibold))
-            .foregroundStyle(Color.moka)
+            .foregroundStyle(Color.accentColor)
             .textCase(nil)
     }
 }

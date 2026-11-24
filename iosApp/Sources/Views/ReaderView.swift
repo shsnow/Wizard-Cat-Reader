@@ -755,7 +755,7 @@ struct ReaderView: View {
                         Image(systemName: "hare")
                             .font(.caption)
                     }
-                    .tint(.moka)
+                    .tint(Color.accentColor)
                     .padding(.horizontal, 24)
                     .padding(.top, 10)
                 }
@@ -873,7 +873,7 @@ struct ReaderView: View {
                         }
                     }
                 )
-                .tint(.moka)
+                .tint(Color.accentColor)
                 .accessibilityLabel("Página")
                 .accessibilityValue(
                     String(

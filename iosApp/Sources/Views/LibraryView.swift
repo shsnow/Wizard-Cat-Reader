@@ -309,7 +309,7 @@ struct LibraryView: View {
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(5)
-                        .background(Color.moka, in: Circle())
+                        .background(Color.accentColor, in: Circle())
                         .padding(4)
                 }
             Text(entry.manga.title)
@@ -383,7 +383,7 @@ struct LibraryView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
-                    isOn ? Color.moka : Color(.secondarySystemBackground),
+                    isOn ? Color.accentColor : Color(.secondarySystemBackground),
                     in: Capsule()
                 )
                 .foregroundStyle(isOn ? .white : .primary)

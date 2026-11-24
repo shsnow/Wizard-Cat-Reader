@@ -67,7 +67,7 @@ struct InsightsView: View {
                         Capsule()
                             .fill(Color(.secondarySystemBackground))
                         Capsule()
-                            .fill(Color.moka.opacity(0.75))
+                            .fill(Color.accentColor.opacity(0.75))
                             .frame(width: max(8, geometry.size.width * seconds / maxSeconds))
                     }
                 }

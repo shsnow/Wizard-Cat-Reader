@@ -37,6 +37,42 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
+/// The app's accent (secondary) color: buttons, badges, progress, selections.
+enum AccentChoice: String, CaseIterable, Identifiable {
+    case terracotta, red, pink, purple, blue, teal, green, gold, custom
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+            case .terracotta: return NSLocalizedString("Terracota", comment: "")
+            case .red: return NSLocalizedString("Rojo", comment: "")
+            case .pink: return NSLocalizedString("Rosado", comment: "")
+            case .purple: return NSLocalizedString("Morado", comment: "")
+            case .blue: return NSLocalizedString("Azul", comment: "")
+            case .teal: return NSLocalizedString("Turquesa", comment: "")
+            case .green: return NSLocalizedString("Verde", comment: "")
+            case .gold: return NSLocalizedString("Dorado", comment: "")
+            case .custom: return NSLocalizedString("Personalizado", comment: "")
+        }
+    }
+
+    /// Fixed colors, picked to read on both the light and the dark theme. Nil for custom.
+    var preset: Color? {
+        switch self {
+            case .terracotta: return .moka
+            case .red: return Color(red: 0.86, green: 0.20, blue: 0.24)
+            case .pink: return Color(red: 0.91, green: 0.33, blue: 0.56)
+            case .purple: return Color(red: 0.58, green: 0.36, blue: 0.86)
+            case .blue: return Color(red: 0.20, green: 0.48, blue: 0.95)
+            case .teal: return Color(red: 0.10, green: 0.65, blue: 0.66)
+            case .green: return Color(red: 0.24, green: 0.66, blue: 0.34)
+            case .gold: return Color(red: 0.85, green: 0.62, blue: 0.13)
+            case .custom: return nil
+        }
+    }
+}
+
 enum ReaderBackground: String, CaseIterable, Identifiable {
     case black, white, system
 
@@ -122,6 +158,19 @@ final class AppSettings: ObservableObject {
 
     @Published var appTheme: AppTheme {
         didSet { defaults.set(appTheme.rawValue, forKey: "appTheme") }
+    }
+
+    @Published var accentChoice: AccentChoice {
+        didSet { defaults.set(accentChoice.rawValue, forKey: "accentChoice") }
+    }
+
+    /// The color behind `AccentChoice.custom`, stored as "#RRGGBB".
+    @Published var customAccent: Color {
+        didSet { defaults.set(customAccent.hexString, forKey: "customAccent") }
+    }
+
+    var accentColor: Color {
+        accentChoice.preset ?? customAccent
     }
 
     /// The app's own language. iOS reads AppleLanguages at launch, so a change
@@ -265,6 +314,9 @@ final class AppSettings: ObservableObject {
             languages = ["es", "es-419", "en", "all"]
         }
         appTheme = AppTheme(rawValue: defaults.string(forKey: "appTheme") ?? "") ?? .system
+        accentChoice = AccentChoice(rawValue: defaults.string(forKey: "accentChoice") ?? "")
+            ?? .terracotta
+        customAccent = Color(hex: defaults.string(forKey: "customAccent") ?? "") ?? .moka
         appLanguage = AppLanguage(rawValue: defaults.string(forKey: "appLanguage") ?? "") ?? .system
         let columns = defaults.integer(forKey: "gridColumns")
         gridColumns = (2...4).contains(columns) ? columns : 3
@@ -302,6 +354,23 @@ final class AppSettings: ObservableObject {
 }
 
 extension Color {
-    /// The terracotta of the app icon.
+    /// The terracotta of the app icon: the default accent.
     static let moka = Color(red: 0.80, green: 0.33, blue: 0.18)
+
+    init?(hex: String) {
+        let digits = hex.trimmingCharacters(in: CharacterSet(charactersIn: "# "))
+        guard digits.count == 6, let value = UInt32(digits, radix: 16) else { return nil }
+        self.init(
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255
+        )
+    }
+
+    var hexString: String {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        UIColor(self).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        func byte(_ value: CGFloat) -> Int { Int((min(max(value, 0), 1) * 255).rounded()) }
+        return String(format: "#%02X%02X%02X", byte(red), byte(green), byte(blue))
+    }
 }

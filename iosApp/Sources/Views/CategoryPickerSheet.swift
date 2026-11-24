@@ -53,7 +53,7 @@ struct CategoryPickerSheet: View {
                                 if selected.contains(category.id) {
                                     Image(systemName: "checkmark")
                                         .font(.body.weight(.semibold))
-                                        .foregroundStyle(Color.moka)
+                                        .foregroundStyle(Color.accentColor)
                                 }
                             }
                             .contentShape(Rectangle())

@@ -139,7 +139,7 @@ struct SourceBrowseView: View {
                 HStack {
                     Label("Filtros aplicados", systemImage: "line.3.horizontal.decrease.circle")
                         .font(.footnote)
-                        .foregroundStyle(Color.moka)
+                        .foregroundStyle(Color.accentColor)
                     Spacer()
                     Button("Quitar") {
                         appliedFilterStates = nil

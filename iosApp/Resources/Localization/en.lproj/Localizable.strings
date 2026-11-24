@@ -273,6 +273,16 @@
 "Noche" = "Night";
 "Terracota" = "Terracotta";
 "Ícono de la app" = "App icon";
+"Color de acento" = "Accent color";
+"Rojo" = "Red";
+"Rosado" = "Pink";
+"Morado" = "Purple";
+"Azul" = "Blue";
+"Turquesa" = "Teal";
+"Verde" = "Green";
+"Dorado" = "Gold";
+"Personalizado" = "Custom";
+"Elige cualquier color. Uno muy claro o muy oscuro puede leerse mal en alguno de los temas." = "Pick any color. A very light or very dark one may be hard to read in one of the themes.";
 "El idioma se aplica al volver a abrir la app." = "The language applies the next time you open the app.";
 "Manhwa, manhua y webtoons se abren en modo vertical. Puedes cambiar el modo de cada serie desde su ficha o dentro del lector. La escala se aplica al modo paginado." = "Manhwa, manhua and webtoons open in vertical mode. You can change each series' mode from its page or inside the reader. The scale applies to paged mode.";
 "Sitio de soporte" = "Support site";
