@@ -537,6 +537,37 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         }
         WebViewLog.shared.add(level: "page", text: "finished \(url)", page: webView.url?.host ?? "")
         sendEvent("pageFinished", url)
+        probe(after: 4)
+        probe(after: 15)
+    }
+
+    /// A snapshot of the page for the log: what an extension script would find there.
+    private func probe(after seconds: Double) {
+        let script = """
+        (function(){try{var a=document.querySelectorAll('a[href]'),c=0,l=0;\
+        for(var i=0;i<a.length;i++){var h=a[i].getAttribute('href')||'';\
+        if(/-chapter-/.test(h)){c++;if(a[i].closest('li'))l++;}}\
+        var k=Object.keys(window).filter(function(x){return /comix|harvest/i.test(x)});\
+        var f=document.querySelector('.mchap-foot,nav[aria-label=Pagination]');\
+        var fr=Array.prototype.map.call(document.querySelectorAll('iframe'),function(x){return (x.src||'').slice(0,60)});\
+        return JSON.stringify({path:location.pathname,ready:document.readyState,links:a.length,chapterLinks:c,\
+        inList:l,globals:k,started:!!window.__comixA1ChaptersStarted,harvest:window.__comixHarvest?\
+        {count:window.__comixHarvest.count,error:window.__comixHarvest.error,rounds:window.__comixHarvest.rounds}:null,\
+        foot:f?f.textContent.replace(/\\s+/g,' ').slice(0,80):null,iframes:fr,\
+        w:innerWidth,h:innerHeight})}catch(e){return 'probe failed: '+e}})()
+        """
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard let self, self.webView.superview != nil else { return }
+            let page = self.webView.url?.host ?? ""
+            self.webView.evaluateJavaScript(script) { value, error in
+                WebViewLog.shared.add(
+                    level: "probe",
+                    text: "+\(Int(seconds))s \((value as? String) ?? error?.localizedDescription ?? "nil")",
+                    page: page
+                )
+            }
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
