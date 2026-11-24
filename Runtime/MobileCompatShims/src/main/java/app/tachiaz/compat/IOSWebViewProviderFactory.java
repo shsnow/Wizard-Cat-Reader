@@ -260,6 +260,18 @@ public final class IOSWebViewProviderFactory
                     );
                     return future.get();
                 }
+                case "requestSeen":
+                    // A fetch/XHR the page already sent (WKWebView cannot hold it back): the
+                    // client sees it for what it watches; its answer cannot apply.
+                    CALLBACK_EXECUTOR.submit(() -> {
+                        try {
+                            WebResourceResponse ignored = intercept(decodeRequest(argument1));
+                            if (ignored != null && ignored.getData() != null) ignored.getData().close();
+                        } catch (Throwable error) {
+                            // Only an observation; nothing waits on it.
+                        }
+                    });
+                    return "";
                 case "pageStarted":
                     postMain(() -> webViewClient.onPageStarted(view, argument1, (Bitmap) null));
                     return "";

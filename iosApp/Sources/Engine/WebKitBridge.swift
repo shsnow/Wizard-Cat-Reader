@@ -281,6 +281,7 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         webView.isUserInteractionEnabled = false
         webView.alpha = 0.01
         Self.hostWindow()?.insertSubview(webView, at: 0)
+        controller.addUserScript(Self.requestObserver)
     }
 
     private static func hostWindow() -> UIWindow? {
@@ -376,6 +377,7 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
     private func installInterfaceScripts() {
         let controller = contentController
         controller.removeAllUserScripts()
+        controller.addUserScript(Self.requestObserver)
         for (name, methods) in interfaces {
             controller.addUserScript(WKUserScript(
                 source: Self.interfaceScript(name: name, asyncMethods: methods),
@@ -405,7 +407,39 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         """
     }
 
+    /// WKWebView has no shouldInterceptRequest. Extensions that watch the page's own
+    /// requests (to know the site is loading data, or to pace it) at least learn of its
+    /// fetch and XHR calls: the page reports each one, and Java hears of it as
+    /// shouldInterceptRequest whose answer is ignored, as the request already went out.
+    private static let requestObserver = WKUserScript(
+        source: """
+        (function(){if(window.__wizardRequests)return;window.__wizardRequests=1;\
+        function r(u,m){try{window.webkit.messageHandlers.\(messageHandlerName).postMessage(\
+        {r:new URL(String(u),location.href).href,m:String(m||'GET').toUpperCase()})}catch(e){}}\
+        var f=window.fetch;if(f){window.fetch=function(i,o){try{r(i&&i.url?i.url:i,\
+        (o&&o.method)||(i&&i.method))}catch(e){}return f.apply(this,arguments)}}\
+        var x=XMLHttpRequest.prototype,op=x.open,sd=x.send;\
+        x.open=function(m,u){this.__wizardR=[u,m];return op.apply(this,arguments)};\
+        x.send=function(){if(this.__wizardR)r(this.__wizardR[0],this.__wizardR[1]);\
+        return sd.apply(this,arguments)}})();
+        """,
+        injectionTime: .atDocumentStart,
+        forMainFrameOnly: false
+    )
+
     func received(_ message: WKScriptMessage) {
+        if let body = message.body as? [String: Any], let address = body["r"] as? String {
+            let method = body["m"] as? String ?? "GET"
+            let isMain = message.frameInfo.isMainFrame
+            let payload = [
+                WebKitBridge.encode(address), WebKitBridge.encode(method), String(isMain),
+            ].joined(separator: "\n")
+            let handle = self.handle
+            WebKitBridge.events.async {
+                _ = WebKitBridge.send(handle, "requestSeen", payload)
+            }
+            return
+        }
         guard let body = message.body as? [String: Any],
               let name = body["n"] as? String,
               let payload = body["p"] as? String
