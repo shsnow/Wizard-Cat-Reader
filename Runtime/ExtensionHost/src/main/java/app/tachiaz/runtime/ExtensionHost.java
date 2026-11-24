@@ -2857,8 +2857,22 @@ public final class ExtensionHost {
             cause = cause.getCause();
         }
         String message = cause.getMessage();
-        return cause.getClass().getName() +
+        String description = cause.getClass().getName() +
             (message == null ? "" : ": " + message);
+        if ("Stub!".equals(message)) {
+            // An Android API the compatibility layer leaves empty: name it, or there is
+            // nothing to go on. The first frame is the stub itself, the next its caller.
+            StackTraceElement[] frames = cause.getStackTrace();
+            StringBuilder where = new StringBuilder();
+            for (int i = 0; i < Math.min(2, frames.length); i++) {
+                where.append(i == 0 ? " (en " : " ← ")
+                    .append(frames[i].getClassName())
+                    .append('.')
+                    .append(frames[i].getMethodName());
+            }
+            if (where.length() > 0) description += where.append(')');
+        }
+        return description;
     }
 
     private static boolean isCloudflareChallenge(Throwable error) {
