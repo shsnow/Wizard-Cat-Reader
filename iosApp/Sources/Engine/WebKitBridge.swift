@@ -76,6 +76,26 @@ enum WebKitBridge {
         WebKitEvents.dispatch(handle: handle, event: event, first, second)
     }
 
+    /// Extensions hand their WebView a Chrome or Android user agent. On WebKit that is a
+    /// lie anti-bot checks (Cloudflare Turnstile above all) catch at once: they fail the
+    /// check for an engine that does not match. Such an agent becomes Safari's, keeping
+    /// whether it asked for a phone or a desktop page; a WebKit agent is kept as given.
+    static func engineMatchingUserAgent(_ requested: String) -> String? {
+        guard !requested.isEmpty else { return nil }
+        let lower = requested.lowercased()
+        let claimsOtherEngine = lower.contains("chrome/") || lower.contains("crios/")
+            || lower.contains("firefox/") || lower.contains("android") || lower.contains("; wv")
+            || lower.contains("edg/")
+        guard claimsOtherEngine else { return requested }
+        let wantsMobile = lower.contains("mobile") || lower.contains("android")
+        if wantsMobile {
+            // Nil: WebKit's own iPhone agent plus applicationNameForUserAgent (Safari's tail).
+            return nil
+        }
+        return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+            + "(KHTML, like Gecko) Version/17.4 Safari/605.1.15"
+    }
+
     // MARK: - Wire format (shared with IOSWebViewProviderFactory.java)
 
     static func encode(_ value: String) -> String {
@@ -195,8 +215,7 @@ enum WebKitViews {
             case "removeJSInterface":
                 view.removeInterface(name: first ?? "")
             case "userAgent":
-                let agent = first ?? ""
-                webView.customUserAgent = agent.isEmpty ? nil : agent
+                webView.customUserAgent = WebKitBridge.engineMatchingUserAgent(first ?? "")
             case "settings":
                 // javaScript, domStorage, ... : WebKit keeps JavaScript and storage on,
                 // which is what every extension that opens a WebView asks for.
@@ -453,7 +472,7 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         .postMessage({c:'error',t:String(e.message)+' ('+e.filename+':'+e.lineno+')'})}catch(x){}})})();
         """,
         injectionTime: .atDocumentStart,
-        forMainFrameOnly: false
+        forMainFrameOnly: true
     )
 
     func received(_ message: WKScriptMessage) {
