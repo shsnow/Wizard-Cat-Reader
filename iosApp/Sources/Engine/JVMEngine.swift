@@ -560,6 +560,7 @@ final class JVMEngine: @unchecked Sendable {
     func imageRequest(
         imageURL: String,
         pageURL: String?,
+        pageIndex: Int? = nil,
         sourceId: Int64,
         installed: InstalledExtension,
         priority: JVMPriority = .interactive
@@ -574,7 +575,8 @@ final class JVMEngine: @unchecked Sendable {
                         extensionId: installed.id,
                         sourceId: String(sourceId),
                         imageURL: imageURL,
-                        pageURL: pageURL
+                        pageURL: pageURL,
+                        pageIndex: pageIndex.map(String.init)
                     )
                 )
             )
@@ -598,6 +600,7 @@ final class JVMEngine: @unchecked Sendable {
     func materializeImage(
         imageURL: String,
         pageURL: String?,
+        pageIndex: Int? = nil,
         sourceId: Int64,
         installed: InstalledExtension,
         priority: JVMPriority = .interactive
@@ -619,7 +622,8 @@ final class JVMEngine: @unchecked Sendable {
                         sourceId: String(sourceId),
                         imageURL: imageURL,
                         pageURL: pageURL,
-                        destinationPath: destination.path
+                        destinationPath: destination.path,
+                        pageIndex: pageIndex.map(String.init)
                     )
                 )
             )

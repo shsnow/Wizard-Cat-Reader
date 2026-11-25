@@ -253,7 +253,8 @@ actor ImagePipeline {
 
         do {
             let request = try await JVMEngine.shared.imageRequest(
-                imageURL: imageURL, pageURL: pageURL, sourceId: sourceId, installed: installed,
+                imageURL: imageURL, pageURL: pageURL, pageIndex: page.index,
+                sourceId: sourceId, installed: installed,
                 priority: priority
             )
             if let headerKey { learnPageHeaders(request, requested: imageURL, key: headerKey) }
@@ -265,8 +266,8 @@ actor ImagePipeline {
             // Fall through to the extension's own client.
         }
         return try await JVMEngine.shared.materializeImage(
-            imageURL: imageURL, pageURL: pageURL, sourceId: sourceId, installed: installed,
-            priority: priority
+            imageURL: imageURL, pageURL: pageURL, pageIndex: page.index,
+            sourceId: sourceId, installed: installed, priority: priority
         )
     }
 

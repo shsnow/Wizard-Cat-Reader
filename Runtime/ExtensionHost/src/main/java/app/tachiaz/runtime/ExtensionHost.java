@@ -1204,7 +1204,9 @@ public final class ExtensionHost {
                 uriType
             )
             .newInstance(
-                0,
+                // The real index: some sources look the page up by it (Comix keeps each
+                // page's latest image URL per chapter); 0 gave every page the first one.
+                pageIndex(request.get("pageIndex")),
                 defaultValue(request.get("pageURL"), imageURL),
                 imageURL,
                 null
@@ -1414,7 +1416,8 @@ public final class ExtensionHost {
             requireSource(request),
             require(request, "imageURL"),
             request.get("pageURL"),
-            require(request, "destinationPath")
+            require(request, "destinationPath"),
+            pageIndex(request.get("pageIndex"))
         );
     }
 
@@ -1423,6 +1426,25 @@ public final class ExtensionHost {
         String imageURL,
         String pageURL,
         String destinationPath
+    ) throws Exception {
+        return materializeImage(source, imageURL, pageURL, destinationPath, 0);
+    }
+
+    private static int pageIndex(String value) {
+        if (value == null) return 0;
+        try {
+            return Math.max(0, Integer.parseInt(value.trim()));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    static String materializeImage(
+        Object source,
+        String imageURL,
+        String pageURL,
+        String destinationPath,
+        int pageIndex
     ) throws Exception {
         ClassLoader loader = source.getClass().getClassLoader();
         Class<?> pageType = Class.forName(
@@ -1439,7 +1461,7 @@ public final class ExtensionHost {
                 uriType
             )
             .newInstance(
-                0,
+                pageIndex,
                 defaultValue(pageURL, imageURL),
                 imageURL,
                 null

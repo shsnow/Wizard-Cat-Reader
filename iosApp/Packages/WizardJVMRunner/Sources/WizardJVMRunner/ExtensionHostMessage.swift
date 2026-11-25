@@ -43,6 +43,8 @@ public struct ExtensionHostRequest: Codable, Sendable {
     public let imageURL: String?
     public let pageURL: String?
     public let destinationPath: String?
+    /// The page's position in its chapter, for extensions that look pages up by index.
+    public let pageIndex: String?
 
     public init(
         operation: String,
@@ -80,7 +82,8 @@ public struct ExtensionHostRequest: Codable, Sendable {
         fetchChapters: String? = nil,
         imageURL: String? = nil,
         pageURL: String? = nil,
-        destinationPath: String? = nil
+        destinationPath: String? = nil,
+        pageIndex: String? = nil
     ) {
         self.operation = operation
         self.extensionId = extensionId
@@ -118,6 +121,7 @@ public struct ExtensionHostRequest: Codable, Sendable {
         self.imageURL = imageURL
         self.pageURL = pageURL
         self.destinationPath = destinationPath
+        self.pageIndex = pageIndex
     }
 }
 
