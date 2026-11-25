@@ -467,7 +467,7 @@ struct MangaDetailView: View {
     private var chapterSection: some View {
         Section {
             if chapters.isEmpty && isLoading {
-                HStack { Spacer(); ProgressView(); Spacer() }
+                SlowLoadingIndicator()
             } else if chapters.isEmpty, let error {
                 VStack(spacing: 8) {
                     Text(error).font(.footnote).foregroundStyle(.secondary)
@@ -900,6 +900,31 @@ struct MangaDetailView: View {
         } catch {
             // Offline with a saved copy: keep showing it instead of an error.
             if chapters.isEmpty { self.error = error.localizedDescription }
+        }
+    }
+}
+
+/// A spinner that explains itself when loading runs long: some sources pace the site on
+/// purpose (a few seconds per page of chapters) so it does not block them.
+private struct SlowLoadingIndicator: View {
+    @State private var slow = false
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+            if slow {
+                Text("Esta fuente carga los capítulos de a poco para que el sitio no la bloquee. La primera vez una serie larga puede tardar unos minutos; después es rápido.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .task {
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            withAnimation { slow = true }
         }
     }
 }

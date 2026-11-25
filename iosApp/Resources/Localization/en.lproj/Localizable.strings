@@ -441,3 +441,4 @@
 "Tus repositorios no tienen extensiones mixtas." = "Your repositories have no mixed extensions.";
 "Solo estas extensiones mixtas se permiten, además de las normales. Las +18 nunca se permiten." = "Only these mixed extensions are allowed, besides the normal ones. 18+ ones are never allowed.";
 "El sitio pide una verificación" = "The site asks for a check";
+"Esta fuente carga los capítulos de a poco para que el sitio no la bloquee. La primera vez una serie larga puede tardar unos minutos; después es rápido." = "This source loads chapters a little at a time so the site does not block it. The first time, a long series can take a few minutes; after that it is quick.";
