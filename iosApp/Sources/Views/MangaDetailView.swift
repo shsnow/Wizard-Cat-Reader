@@ -908,10 +908,20 @@ struct MangaDetailView: View {
 /// purpose (a few seconds per page of chapters) so it does not block them.
 private struct SlowLoadingIndicator: View {
     @State private var slow = false
+    @ObservedObject private var progress = WebViewProgress.shared
 
     var body: some View {
         VStack(spacing: 10) {
-            ProgressView()
+            if let value = progress.value {
+                ProgressView(value: Double(value.done), total: Double(value.total))
+                    .padding(.horizontal, 24)
+                Text(String(format: NSLocalizedString("Cargando capítulos: %lld de %lld", comment: ""),
+                            value.done, value.total))
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            } else {
+                ProgressView()
+            }
             if slow {
                 Text("Esta fuente carga los capítulos de a poco para que el sitio no la bloquee. La primera vez una serie larga puede tardar unos minutos; después es rápido.")
                     .font(.footnote)

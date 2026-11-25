@@ -316,6 +316,7 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
         challengeWatch?.cancel()
         challengeWatch = nil
         ChallengeOverlay.shared.release(self)
+        WebViewProgress.shared.clear(handle: handle)
         webView.stopLoading()
         webView.navigationDelegate = nil
         webView.uiDelegate = nil
@@ -584,6 +585,8 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
                               page: webView.url?.host ?? "")
         sendEvent("pageStarted", webView.url?.absoluteString ?? "")
         sendEvent("progress", "50")
+        // A new page starts its own count.
+        WebViewProgress.shared.clear(handle: handle)
         watchForChallenge()
     }
 
@@ -610,6 +613,7 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
                 checks += 1
                 guard let self, self.webView.superview != nil || ChallengeOverlay.shared.isShowing(self)
                 else { return }
+                await self.reportProgress()
                 let present = await self.challengePresent()
                 if present {
                     seen += 1
@@ -628,6 +632,25 @@ final class BridgedWebView: NSObject, WKNavigationDelegate, WKUIDelegate {
                 }
             }
         }
+    }
+
+    /// The site's own list counter ("Showing 361 to 380 of 916 items"), when it has one:
+    /// how far an extension walking a long chapter list has got.
+    private static let progressCheck = """
+    (function(){try{var t=document.body?document.body.innerText:'';\
+    var m=/Showing\\s+[\\d,.]+\\s+(?:to|-)\\s+([\\d,.]+)\\s+of\\s+([\\d,.]+)/i.exec(t);\
+    if(!m)return null;var n=function(s){return parseInt(s.replace(/[,.]/g,''),10)};\
+    return [n(m[1]),n(m[2])]}catch(e){return null}})()
+    """
+
+    private func reportProgress() async {
+        let value: [Int]? = await withCheckedContinuation { continuation in
+            webView.evaluateJavaScript(Self.progressCheck) { value, _ in
+                continuation.resume(returning: (value as? [NSNumber])?.map(\.intValue))
+            }
+        }
+        guard let value, value.count == 2, value[1] > 0 else { return }
+        WebViewProgress.shared.update(handle: handle, done: value[0], total: value[1])
     }
 
     private func challengePresent() async -> Bool {
@@ -1012,5 +1035,38 @@ final class ChallengeOverlay {
             .compactMap { $0 as? UIWindowScene }
             .flatMap(\.windows)
         return windows.first(where: \.isKeyWindow) ?? windows.first
+    }
+}
+
+// MARK: - Progress
+
+/// How far a hidden extension page has walked a long list, read from the site's own counter.
+/// Shown while chapters load so a slow source does not look stuck.
+@MainActor
+final class WebViewProgress: ObservableObject {
+    static let shared = WebViewProgress()
+
+    struct Value: Equatable {
+        let done: Int
+        let total: Int
+    }
+
+    @Published private(set) var value: Value?
+    private var owner: Int64?
+
+    func update(handle: Int64, done: Int, total: Int) {
+        let clamped = Value(done: min(max(done, 0), total), total: total)
+        // Only forward: a page that re-renders from the top must not move the bar back.
+        if owner == handle, let current = value, current.total == total, clamped.done < current.done {
+            return
+        }
+        owner = handle
+        if value != clamped { value = clamped }
+    }
+
+    func clear(handle: Int64) {
+        guard owner == handle else { return }
+        owner = nil
+        value = nil
     }
 }
